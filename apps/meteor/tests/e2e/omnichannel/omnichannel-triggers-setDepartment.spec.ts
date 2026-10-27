@@ -1,7 +1,8 @@
 import { IS_EE } from '../config/constants';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { HomeOmnichannel, OmnichannelLiveChatEmbedded } from '../page-objects';
+import { HomeOmnichannel } from '../page-objects';
+import { OmnichannelLiveChatEmbedded } from '../page-objects/omnichannel';
 import { createAgent } from '../utils/omnichannel/agents';
 import { addAgentToDepartment, createDepartment } from '../utils/omnichannel/departments';
 import { test, expect } from '../utils/test';
@@ -96,7 +97,7 @@ test.describe('OC - Livechat Triggers - SetDepartment', () => {
 	});
 
 	test('OC - Livechat Triggers - setDepartment should affect agent.next call', async () => {
-		await poLiveChat.page.goto('/packages/rocketchat_livechat/assets/demo.html');
+		await poLiveChat.goto();
 
 		const depId = departmentB._id;
 
@@ -112,7 +113,7 @@ test.describe('OC - Livechat Triggers - SetDepartment', () => {
 	test('OC - Livechat Triggers - setDepartment should affect agent.next call - Register Form Disabled', async ({ api }) => {
 		await api.post('/settings/Livechat_registration_form', { value: false });
 
-		await poLiveChat.page.goto('/packages/rocketchat_livechat/assets/demo.html');
+		await poLiveChat.goto();
 
 		const depId = departmentB._id;
 

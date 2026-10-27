@@ -10,7 +10,7 @@ import { useFieldError } from '../hooks';
 import { ActionExternalServiceUrl } from './ActionExternalServiceUrl';
 import { ActionSender } from './ActionSender';
 
-type SendMessageActionFormType = ComponentProps<typeof Field> & {
+type SendMessageActionFormType = ComponentProps<typeof FieldGroup> & {
 	index: number;
 	control: Control<TriggersPayload>;
 	trigger: UseFormTrigger<TriggersPayload>;
@@ -19,7 +19,7 @@ type SendMessageActionFormType = ComponentProps<typeof Field> & {
 export const ExternalServiceActionForm = ({ control, trigger, index, ...props }: SendMessageActionFormType) => {
 	const { t } = useTranslation();
 
-	const hasLicense = useHasLicenseModule('livechat-enterprise');
+	const { data: hasLicense = false } = useHasLicenseModule('livechat-enterprise');
 
 	const timeoutFieldId = useId();
 	const timeoutFieldName = `actions.${index}.params.serviceTimeout` as const;

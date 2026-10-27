@@ -1,21 +1,19 @@
-import { isOmnichannelRoom, isRoomFederated, isRoomNativeFederated, isVoipRoom } from '@rocket.chat/core-typings';
+import { isOmnichannelRoom, isRoomFederated, isRoomNativeFederated } from '@rocket.chat/core-typings';
 import { usePermission } from '@rocket.chat/ui-contexts';
-import type { ReactElement } from 'react';
 import { memo } from 'react';
 
+import ComposerAbacLocked from './ComposerAbacLocked';
 import ComposerAirGappedRestricted from './ComposerAirGappedRestricted';
 import ComposerAnonymous from './ComposerAnonymous';
 import ComposerArchived from './ComposerArchived';
 import ComposerBlocked from './ComposerBlocked';
 import ComposerFederation from './ComposerFederation';
-import ComposerFederationInvalidVersion from './ComposerFederation/ComposerFederationInvalidVersion';
 import ComposerJoinWithPassword from './ComposerJoinWithPassword';
 import type { ComposerMessageProps } from './ComposerMessage';
 import ComposerMessage from './ComposerMessage';
 import ComposerOmnichannel from './ComposerOmnichannel';
 import ComposerReadOnly from './ComposerReadOnly';
 import ComposerSelectMessages from './ComposerSelectMessages';
-import ComposerVoIP from './ComposerVoIP';
 import { useRoom } from '../contexts/RoomContext';
 import { useMessageComposerIsAnonymous } from './hooks/useMessageComposerIsAnonymous';
 import { useMessageComposerIsArchived } from './hooks/useMessageComposerIsArchived';
@@ -23,8 +21,9 @@ import { useMessageComposerIsBlocked } from './hooks/useMessageComposerIsBlocked
 import { useMessageComposerIsReadOnly } from './hooks/useMessageComposerIsReadOnly';
 import { useAirGappedRestriction } from '../../../hooks/useAirGappedRestriction';
 import { useIsSelecting } from '../MessageList/contexts/SelectedMessagesContext';
+import { useIsRoomAbacLocked } from '../hooks/useIsRoomAbacLocked';
 
-const ComposerContainer = ({ children, ...props }: ComposerMessageProps): ReactElement => {
+const ComposerContainer = ({ children, ...props }: ComposerMessageProps) => {
 	const room = useRoom();
 
 	const canJoinWithoutCode = usePermission('join-without-join-code');
@@ -35,12 +34,12 @@ const ComposerContainer = ({ children, ...props }: ComposerMessageProps): ReactE
 	const isBlockedOrBlocker = useMessageComposerIsBlocked({ subscription: props.subscription });
 	const isArchived = useMessageComposerIsArchived(room, props.subscription);
 	const isReadOnly = useMessageComposerIsReadOnly(room);
+	const isAbacLocked = useIsRoomAbacLocked(room._id, room);
 
 	const isOmnichannel = isOmnichannelRoom(room);
 	const isFederation = isRoomFederated(room);
 
 	const isFederationBlocked = !isRoomNativeFederated(room);
-	const isVoip = isVoipRoom(room);
 
 	const [isAirGappedRestricted] = useAirGappedRestriction();
 
@@ -52,16 +51,8 @@ const ComposerContainer = ({ children, ...props }: ComposerMessageProps): ReactE
 		return <ComposerOmnichannel {...props} />;
 	}
 
-	if (isVoip) {
-		return <ComposerVoIP />;
-	}
-
 	if (isFederation) {
-		if (isFederationBlocked) {
-			return <ComposerFederationInvalidVersion />;
-		}
-
-		return <ComposerFederation {...props} />;
+		return <ComposerFederation blocked={isFederationBlocked} {...props} />;
 	}
 
 	if (isAnonymous) {
@@ -74,6 +65,10 @@ const ComposerContainer = ({ children, ...props }: ComposerMessageProps): ReactE
 
 	if (isArchived) {
 		return <ComposerArchived />;
+	}
+
+	if (isAbacLocked) {
+		return <ComposerAbacLocked />;
 	}
 
 	if (mustJoinWithCode) {

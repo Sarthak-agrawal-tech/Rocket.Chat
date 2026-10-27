@@ -1,11 +1,8 @@
-import Ajv from 'ajv';
+import { ajvQuery } from '../Ajv';
 
-const ajv = new Ajv({
-	coerceTypes: true,
-});
-
-export type UsersInfoParamsGet = ({ userId: string } | { username: string } | { importId: string }) & {
-	fields?: string;
+export type UsersInfoParamsGet = (
+	{ userId: string } | { username: string } | { importId: string } | { email: string } | { sipExtension: string }
+) & {
 	includeUserRooms?: string;
 };
 
@@ -13,16 +10,15 @@ const UsersInfoParamsGetSchema = {
 	anyOf: [
 		{
 			type: 'object',
+			description: 'Get information about a user by their id.',
 			properties: {
 				userId: {
 					type: 'string',
+					description: 'The user id.',
 				},
 				includeUserRooms: {
 					type: 'string',
-				},
-				fields: {
-					type: 'string',
-					nullable: true,
+					description: 'Set to "true" to include the rooms the user belongs to in the response.',
 				},
 			},
 			required: ['userId'],
@@ -30,16 +26,15 @@ const UsersInfoParamsGetSchema = {
 		},
 		{
 			type: 'object',
+			description: 'Get information about a user by their username.',
 			properties: {
 				username: {
 					type: 'string',
+					description: 'The username.',
 				},
 				includeUserRooms: {
 					type: 'string',
-				},
-				fields: {
-					type: 'string',
-					nullable: true,
+					description: 'Set to "true" to include the rooms the user belongs to in the response.',
 				},
 			},
 			required: ['username'],
@@ -47,22 +42,53 @@ const UsersInfoParamsGetSchema = {
 		},
 		{
 			type: 'object',
+			description: 'Get information about a user by their import id.',
 			properties: {
 				importId: {
 					type: 'string',
+					description: 'The import id.',
 				},
 				includeUserRooms: {
 					type: 'string',
-				},
-				fields: {
-					type: 'string',
-					nullable: true,
+					description: 'Set to "true" to include the rooms the user belongs to in the response.',
 				},
 			},
 			required: ['importId'],
 			additionalProperties: false,
 		},
+		{
+			type: 'object',
+			description: 'Get information about a user by their email address.',
+			properties: {
+				email: {
+					type: 'string',
+					description: 'The user email address.',
+				},
+				includeUserRooms: {
+					type: 'string',
+					description: 'Set to "true" to include the rooms the user belongs to in the response.',
+				},
+			},
+			required: ['email'],
+			additionalProperties: false,
+		},
+		{
+			type: 'object',
+			description: 'Get information about a user by their SIP extension.',
+			properties: {
+				sipExtension: {
+					type: 'string',
+					description: 'The SIP extension.',
+				},
+				includeUserRooms: {
+					type: 'string',
+					description: 'Set to "true" to include the rooms the user belongs to in the response.',
+				},
+			},
+			required: ['sipExtension'],
+			additionalProperties: false,
+		},
 	],
 };
 
-export const isUsersInfoParamsGetProps = ajv.compile<UsersInfoParamsGet>(UsersInfoParamsGetSchema);
+export const isUsersInfoParamsGetProps = ajvQuery.compile<UsersInfoParamsGet>(UsersInfoParamsGetSchema);

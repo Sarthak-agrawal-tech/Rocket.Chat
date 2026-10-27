@@ -1,11 +1,11 @@
-import type { TranslationKey } from '@rocket.chat/ui-contexts';
-import { useUserAvatarPath, useUserId } from '@rocket.chat/ui-contexts';
+import { isRoomFederated } from '@rocket.chat/core-typings';
+import { useSetting, useUserAvatarPath, useUserId } from '@rocket.chat/ui-contexts';
+import type { TranslationKey, RoomToolboxActionConfig } from '@rocket.chat/ui-contexts';
 import type { PeerInfo } from '@rocket.chat/ui-voip';
 import { useMediaCallAction } from '@rocket.chat/ui-voip';
 import { useMemo } from 'react';
 
 import { useRoom, useRoomSubscription } from '../../views/room/contexts/RoomContext';
-import type { RoomToolboxActionConfig } from '../../views/room/contexts/RoomToolboxContext';
 import { useUserInfoQuery } from '../useUserInfoQuery';
 
 const getPeerId = (uids: string[], ownUserId: string | undefined) => {
@@ -24,15 +24,24 @@ const getPeerId = (uids: string[], ownUserId: string | undefined) => {
 };
 
 export const useMediaCallRoomAction = () => {
-	const { uids = [] } = useRoom();
+	const room = useRoom();
+	const { uids = [] } = room;
 	const subscription = useRoomSubscription();
 	const ownUserId = useUserId();
+	const federated = isRoomFederated(room);
 
 	const getAvatarUrl = useUserAvatarPath();
 
 	const peerId = getPeerId(uids, ownUserId);
 
 	const { data } = useUserInfoQuery({ userId: peerId as string }, { enabled: !!peerId });
+
+	// When internal calls are routed through SIP, the callee is only reachable if they
+	// have a phone extension assigned. Without SIP routing the call is peer-to-peer and
+	// no extension is required.
+	const sipEnabled = useSetting('VoIP_TeamCollab_SIP_Integration_Enabled', false);
+	const routeInternalCallsViaSip = useSetting('VoIP_TeamCollab_SIP_Integration_For_Internal_Calls', false);
+	const peerHasExtension = Boolean(data?.user?.sipExtension);
 
 	const peerInfo = useMemo<PeerInfo | undefined>(() => {
 		if (!data?.user?._id) {
@@ -53,7 +62,12 @@ export const useMediaCallRoomAction = () => {
 	const blocked = subscription?.blocked || subscription?.blocker;
 
 	return useMemo((): RoomToolboxActionConfig | undefined => {
-		if (!peerId || !callAction || blocked) {
+		if (!peerId || !callAction || blocked || federated) {
+			return undefined;
+		}
+
+		// don't offer the call when SIP routing is required but the peer has no extension.
+		if (sipEnabled && routeInternalCallsViaSip && !peerHasExtension) {
 			return undefined;
 		}
 
@@ -67,5 +81,5 @@ export const useMediaCallRoomAction = () => {
 			action: () => action(),
 			groups: ['direct'] as const,
 		};
-	}, [peerId, callAction, blocked]);
+	}, [peerId, callAction, blocked, federated, sipEnabled, routeInternalCallsViaSip, peerHasExtension]);
 };

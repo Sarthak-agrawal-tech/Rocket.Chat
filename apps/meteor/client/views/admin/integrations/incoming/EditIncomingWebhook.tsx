@@ -1,12 +1,11 @@
 import type { IIncomingIntegration, Serialized } from '@rocket.chat/core-typings';
 import { Button, ButtonGroup, Tabs, TabsItem } from '@rocket.chat/fuselage';
-import { GenericModal } from '@rocket.chat/ui-client';
+import { GenericModal, Page, PageHeader, PageScrollableContentWithShadow, PageFooter } from '@rocket.chat/ui-client';
 import { useSetModal, useTranslation, useRouter, useRouteParameter } from '@rocket.chat/ui-contexts';
 import { useId, useCallback } from 'react';
 import { FormProvider, useForm } from 'react-hook-form';
 
 import IncomingWebhookForm from './IncomingWebhookForm';
-import { Page, PageHeader, PageScrollableContentWithShadow, PageFooter } from '../../../../components/Page';
 import { useCreateIntegration } from '../hooks/useCreateIntegration';
 import { useDeleteIntegration } from '../hooks/useDeleteIntegration';
 import { useUpdateIntegration } from '../hooks/useUpdateIntegration';
@@ -41,7 +40,7 @@ const getInitialValue = (webhookData: Serialized<IIncomingIntegration> | undefin
 
 const INCOMING_TYPE = 'webhook-incoming';
 
-type EditIncomingWebhookProps = {
+export type EditIncomingWebhookProps = {
 	webhookData?: Serialized<IIncomingIntegration>;
 };
 
@@ -97,7 +96,7 @@ const EditIncomingWebhook = ({ webhookData }: EditIncomingWebhookProps) => {
 			<PageHeader title={t('Integration_Incoming_WebHook')} onClickBack={() => router.navigate('/admin/integrations/webhook-incoming')}>
 				<ButtonGroup>
 					{webhookData?._id && (
-						<Button danger onClick={handleDeleteIntegration}>
+						<Button variant='danger' onClick={handleDeleteIntegration}>
 							{t('Delete')}
 						</Button>
 					)}
@@ -123,7 +122,7 @@ const EditIncomingWebhook = ({ webhookData }: EditIncomingWebhookProps) => {
 					<Button type='reset' onClick={() => reset()}>
 						{t('Cancel')}
 					</Button>
-					<Button form={formId} primary type='submit'>
+					<Button form={formId} variant='primary' type='submit'>
 						{t('Save')}
 					</Button>
 				</ButtonGroup>

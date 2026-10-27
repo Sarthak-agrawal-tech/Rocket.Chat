@@ -1,20 +1,25 @@
 {
 	"$schema": "https://json.schemastore.org/tsconfig",
 	"compilerOptions": {
-		"target": "es5",
+		"target": "es2022",
 		"module": "commonjs",
 
-		"strict": true,
 		"esModuleInterop": true,
 		"skipLibCheck": true,
 		"forceConsistentCasingInFileNames": true,
-		"moduleResolution": "node",
+		"moduleResolution": "bundler",
 		"resolveJsonModule": true,
+		"allowArbitraryExtensions": true,
+		"types": ["node", "jest"],
 
-		"noImplicitAny": true,
+		"strict": true,
+		"allowUnreachableCode": false,
+		"allowUnusedLabels": false,
+		"noFallthroughCasesInSwitch": true,
+		"noImplicitOverride": true,
+		"noImplicitReturns": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
-		"strictNullChecks": true
 	},
 	"exclude": ["node_modules", "${configDir}/**/*.spec.ts"]
 }

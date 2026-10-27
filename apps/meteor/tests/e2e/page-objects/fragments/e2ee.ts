@@ -1,9 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 
-import { Modal } from './modal';
-import { ToastMessages } from './toast-messages';
+import { Navbar } from './navbar';
 import { expect } from '../../utils/test';
-import { LoginPage } from '../login';
 
 abstract class E2EEBanner {
 	constructor(protected root: Locator) {}
@@ -40,115 +38,23 @@ export class E2EEKeyDecodeFailureBanner extends E2EEBanner {
 	}
 }
 
-export class SaveE2EEPasswordModal extends Modal {
-	private readonly toastMessages: ToastMessages;
+export class CreateE2EEChannel {
+	private readonly navbar: Navbar;
 
 	constructor(page: Page) {
-		super(page.getByRole('dialog', { name: 'Save your new E2EE password' }));
-		this.toastMessages = new ToastMessages(page);
+		this.navbar = new Navbar(page);
 	}
 
-	private get password() {
-		return this.root.getByLabel('Your E2EE password is:').getByRole('code');
+	async create(name: string): Promise<void> {
+		await this.navbar.createEncryptedChannel(name);
 	}
 
-	private get savedPasswordButton() {
-		return this.root.getByRole('button', { name: 'I saved my password' });
+	async createAndStore(name: string, createdChannels: string[]): Promise<void> {
+		await this.create(name);
+		this.store(name, createdChannels);
 	}
 
-	async getPassword() {
-		return (await this.password.textContent()) ?? '';
-	}
-
-	async confirm() {
-		await this.savedPasswordButton.click();
-		await this.waitForDismissal();
-		await this.toastMessages.dismissToast('success');
-	}
-}
-
-export class EnterE2EEPasswordModal extends Modal {
-	constructor(page: Page) {
-		super(page.getByRole('dialog', { name: 'Enter E2EE password' }));
-	}
-
-	private get passwordInput() {
-		return this.root.getByPlaceholder('Please enter your E2EE password');
-	}
-
-	private get forgotPasswordLink() {
-		return this.root.getByRole('link', { name: 'Forgot E2EE password?' });
-	}
-
-	private get enterE2EEPasswordButton() {
-		return this.root.getByRole('button', { name: 'Enable encryption' });
-	}
-
-	async enterPassword(password: string) {
-		await this.passwordInput.fill(password);
-		await this.enterE2EEPasswordButton.click();
-		await this.waitForDismissal();
-	}
-
-	async forgotPassword() {
-		await this.forgotPasswordLink.click();
-		await this.waitForDismissal();
-	}
-}
-
-export class ResetE2EEPasswordModal extends Modal {
-	private readonly login: LoginPage;
-
-	constructor(page: Page) {
-		super(page.getByRole('dialog', { name: 'Reset E2EE password' }));
-		this.login = new LoginPage(page);
-	}
-
-	private get resetE2EEPasswordButton() {
-		return this.root.getByRole('button', { name: 'Reset E2EE password' });
-	}
-
-	async confirmReset() {
-		await this.resetE2EEPasswordButton.click();
-		await this.waitForDismissal();
-		await this.login.waitForIt();
-	}
-}
-
-export class EnableRoomEncryptionModal extends Modal {
-	private readonly toastMessages: ToastMessages;
-
-	constructor(page: Page) {
-		super(page.getByRole('dialog', { name: 'Enable encryption' }));
-		this.toastMessages = new ToastMessages(page);
-	}
-
-	private get enableButton() {
-		return this.root.getByRole('button', { name: 'Enable encryption' });
-	}
-
-	async enable() {
-		await this.enableButton.click();
-		await this.waitForDismissal();
-		await this.toastMessages.dismissToast('success');
-	}
-}
-
-export class DisableRoomEncryptionModal extends Modal {
-	private readonly toastMessages: ToastMessages;
-
-	constructor(page: Page) {
-		super(page.getByRole('dialog', { name: 'Disable encryption' }));
-		this.toastMessages = new ToastMessages(page);
-	}
-
-	private get disableButton() {
-		return this.root.getByRole('button', { name: 'Disable encryption' });
-	}
-
-	async disable() {
-		await this.disableButton.click();
-		await this.waitForDismissal();
-		await this.toastMessages.dismissToast('success');
+	store(name: string, createdChannels: string[]): void {
+		createdChannels.push(name);
 	}
 }

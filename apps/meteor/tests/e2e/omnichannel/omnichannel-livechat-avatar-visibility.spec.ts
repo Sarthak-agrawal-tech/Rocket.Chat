@@ -3,7 +3,8 @@ import type { Page } from '@playwright/test';
 import { createFakeVisitor } from '../../mocks/data';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { HomeOmnichannel, OmnichannelLiveChatEmbedded } from '../page-objects';
+import { HomeOmnichannel } from '../page-objects';
+import { OmnichannelLiveChatEmbedded } from '../page-objects/omnichannel';
 import { createAgent, makeAgentAvailable } from '../utils/omnichannel/agents';
 import { test, expect } from '../utils/test';
 
@@ -40,7 +41,7 @@ test.describe('OC - Livechat - Avatar visibility', async () => {
 	test.beforeEach(async ({ page }) => {
 		poLiveChat = new OmnichannelLiveChatEmbedded(page);
 
-		await page.goto('/packages/rocketchat_livechat/assets/demo.html');
+		await poLiveChat.goto();
 	});
 
 	test.afterEach(async ({ page }) => {
@@ -64,7 +65,7 @@ test.describe('OC - Livechat - Avatar visibility', async () => {
 		});
 
 		await test.step('expect to send a message as agent', async () => {
-			await poAuxContext.poHomeOmnichannel.sidenav.openChat(visitor.name);
+			await poAuxContext.poHomeOmnichannel.navbar.openChat(visitor.name);
 			await poAuxContext.poHomeOmnichannel.content.sendMessage('this_is_a_test_message_from_agent');
 			await expect(poLiveChat.txtChatMessage('this_is_a_test_message_from_agent')).toBeVisible();
 		});
@@ -88,7 +89,7 @@ test.describe('OC - Livechat - Avatar visibility', async () => {
 		});
 
 		await test.step('should close the conversation', async () => {
-			await poAuxContext.poHomeOmnichannel.sidenav.openChat(visitor.name);
+			await poAuxContext.poHomeOmnichannel.navbar.openChat(visitor.name);
 			await poAuxContext.poHomeOmnichannel.quickActionsRoomToolbar.closeChat({ comment: 'this_is_a_test_comment' });
 		});
 	});

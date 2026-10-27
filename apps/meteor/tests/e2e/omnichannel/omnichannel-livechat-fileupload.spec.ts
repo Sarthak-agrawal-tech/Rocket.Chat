@@ -1,7 +1,8 @@
 import { createFakeVisitor } from '../../mocks/data';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { HomeOmnichannel, OmnichannelLiveChat } from '../page-objects';
+import { HomeOmnichannel } from '../page-objects';
+import { OmnichannelLiveChat } from '../page-objects/omnichannel';
 import { createAgent } from '../utils/omnichannel/agents';
 import { test, expect } from '../utils/test';
 
@@ -18,7 +19,7 @@ const endpointMatrix = [
 ];
 
 const beforeTest = async (poLiveChat: OmnichannelLiveChat) => {
-	await poLiveChat.page.goto('/livechat');
+	await poLiveChat.goto();
 
 	await poLiveChat.openAnyLiveChat();
 	await poLiveChat.sendMessage(visitor, false);
@@ -104,7 +105,7 @@ test.describe('OC - Livechat - OC - File Upload - Disabled', () => {
 				}),
 			);
 
-			await poLiveChat.page.goto('/livechat');
+			await poLiveChat.goto();
 
 			await poLiveChat.openAnyLiveChat();
 			await poLiveChat.sendMessage(visitor, false);

@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker/locale/af_ZA';
 
 import { Users } from '../fixtures/userStates';
-import { OmnichannelChats } from '../page-objects/omnichannel-contact-center-chats';
+import { OmnichannelContactCenterChats } from '../page-objects/omnichannel';
 import { setSettingValueById } from '../utils';
 import { createAgent, makeAgentAvailable } from '../utils/omnichannel/agents';
 import { createConversation } from '../utils/omnichannel/rooms';
@@ -13,7 +13,7 @@ test.describe('OC - Contact Center - Chats', () => {
 	let conversations: Awaited<ReturnType<typeof createConversation>>[];
 	let agent: Awaited<ReturnType<typeof createAgent>>;
 
-	let poOmniChats: OmnichannelChats;
+	let poOmniChats: OmnichannelContactCenterChats;
 
 	const uuid = faker.string.uuid();
 	const visitorA = `visitorA_${uuid}`;
@@ -37,9 +37,9 @@ test.describe('OC - Contact Center - Chats', () => {
 	});
 
 	test.beforeEach(async ({ page }) => {
-		poOmniChats = new OmnichannelChats(page);
+		poOmniChats = new OmnichannelContactCenterChats(page);
 
-		await page.goto('/omnichannel-directory/chats');
+		await poOmniChats.goto();
 	});
 
 	test.afterEach(async ({ page }) => {
@@ -54,15 +54,15 @@ test.describe('OC - Contact Center - Chats', () => {
 	test(`OC - Contact Center - Chats - Filter from and to same date`, async ({ page }) => {
 		await test.step('expect conversations to be visible', async () => {
 			await poOmniChats.inputSearch.fill(uuid);
-			await expect(poOmniChats.findRowByName(visitorA)).toBeVisible();
-			await expect(poOmniChats.findRowByName(visitorB)).toBeVisible();
+			await expect(poOmniChats.table.findRowByName(visitorA)).toBeVisible();
+			await expect(poOmniChats.table.findRowByName(visitorB)).toBeVisible();
 		});
 
 		await test.step('expect to filter [from] and [to] today', async () => {
 			const [chatA] = conversations.map((c) => c.data);
 			const [todayString] = new Date(chatA.room.ts).toISOString().split('T');
 			await poOmniChats.btnFilters.click();
-			await expect(page).toHaveURL('/omnichannel-directory/chats/filters');
+			await expect(page).toHaveURL('/omnichannel/current/chats/filters');
 			await poOmniChats.filters.inputFrom.fill(todayString);
 			await poOmniChats.filters.inputTo.fill(todayString);
 			await poOmniChats.filters.btnApply.click();
@@ -70,8 +70,8 @@ test.describe('OC - Contact Center - Chats', () => {
 		});
 
 		await test.step('expect conversations to be visible', async () => {
-			await expect(poOmniChats.findRowByName(visitorA)).toBeVisible();
-			await expect(poOmniChats.findRowByName(visitorB)).toBeVisible();
+			await expect(poOmniChats.table.findRowByName(visitorA)).toBeVisible();
+			await expect(poOmniChats.table.findRowByName(visitorB)).toBeVisible();
 		});
 	});
 });

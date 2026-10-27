@@ -1,29 +1,33 @@
 import type { Locator, Page } from '@playwright/test';
 
-import { Admin } from './admin';
-import { EditRoomFlexTab } from './fragments/edit-room-flextab';
+import { Admin, AdminSectionsHref } from './admin';
+import { EditAdminRoomFlexTab } from './fragments/flextabs';
 
 export class AdminRooms extends Admin {
-	readonly editRoom: EditRoomFlexTab;
+	readonly editRoom: EditAdminRoomFlexTab;
 
 	constructor(page: Page) {
 		super(page);
-		this.editRoom = new EditRoomFlexTab(page);
+		this.editRoom = new EditAdminRoomFlexTab(page.getByRole('dialog', { name: 'Room information' }));
 	}
 
+	protected readonly route = AdminSectionsHref.rooms;
+
+	protected readonly title = 'Rooms';
+
 	get inputSearchRooms(): Locator {
-		return this.page.getByPlaceholder('Search rooms');
+		return this.pageContent.getByPlaceholder('Search rooms');
 	}
 
 	getRoomRow(name?: string): Locator {
-		return this.page.getByRole('link', { name });
+		return this.pageContent.getByRole('link', { name });
 	}
 
 	get btnEdit(): Locator {
-		return this.page.getByRole('button', { name: 'Edit' });
+		return this.pageContent.getByRole('button', { name: 'Edit' });
 	}
 
 	dropdownFilterRoomType(text = 'All rooms'): Locator {
-		return this.page.getByRole('button', { name: text });
+		return this.pageContent.getByRole('button', { name: text });
 	}
 }

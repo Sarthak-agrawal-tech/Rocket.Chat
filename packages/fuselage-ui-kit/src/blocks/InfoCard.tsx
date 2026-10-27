@@ -1,24 +1,22 @@
 import { Box } from '@rocket.chat/fuselage';
 import * as UiKit from '@rocket.chat/ui-kit';
-import type { ReactElement } from 'react';
 
-import IconButtonElement from '../elements/IconButtonElement';
 import IconElement from '../elements/IconElement';
 import type { BlockProps } from '../utils/BlockProps';
 
-type InfoCardProps = BlockProps<UiKit.InfoCardBlock>;
+export type InfoCardProps = BlockProps<UiKit.InfoCardBlock>;
 
-const InfoCard = ({ block, surfaceRenderer, context }: InfoCardProps): ReactElement => {
+const InfoCard = ({ block, surfaceRenderer, context }: InfoCardProps) => {
 	const { rows, blockId } = block;
 	return (
 		<Box
 			display='flex'
 			flexDirection='column'
-			borderWidth={1}
-			borderRadius='x4'
+			borderWidth='default'
+			borderRadius='medium'
 			borderColor='extra-light'
 			maxWidth='345px'
-			backgroundColor='surface-neutral'
+			backgroundColor='surface-tint'
 			overflow='hidden'
 			color='default'
 		>
@@ -34,18 +32,18 @@ const InfoCard = ({ block, surfaceRenderer, context }: InfoCardProps): ReactElem
 						justifyContent='space-between'
 						flexDirection='row'
 					>
-						<Box display='flex' alignItems='center' flexDirection='row' mi={-4}>
+						<Box display='flex' alignItems='center' flexDirection='row' gap='x8'>
 							{elements.map((element, index) => {
 								if (element.type === 'icon') {
 									return (
-										<Box key={index} mi={4}>
+										<Box key={index}>
 											<IconElement block={element} context={context} surfaceRenderer={surfaceRenderer} index={index} />
 										</Box>
 									);
 								}
 								if (element.type === 'plain_text' || element.type === 'mrkdwn') {
 									return (
-										<Box key={index} mi={4}>
+										<Box key={index}>
 											<>{surfaceRenderer.renderTextObject(element, index, UiKit.BlockContext.NONE)}</>
 										</Box>
 									);
@@ -53,9 +51,7 @@ const InfoCard = ({ block, surfaceRenderer, context }: InfoCardProps): ReactElem
 								return null;
 							})}
 						</Box>
-						<div>
-							{action ? <IconButtonElement block={action} context={context} surfaceRenderer={surfaceRenderer} index={index} /> : null}
-						</div>
+						{action && <div>{surfaceRenderer.renderActionsBlockElement(action, index)}</div>}
 					</Box>
 				);
 			})}

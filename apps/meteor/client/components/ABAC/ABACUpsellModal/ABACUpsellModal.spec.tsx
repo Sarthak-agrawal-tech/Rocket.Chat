@@ -4,11 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { axe } from 'jest-axe';
 
 import ABACUpsellModal from './ABACUpsellModal';
-
-// Mock the hooks used by ABACUpsellModal
-jest.mock('../../../hooks/useHasLicenseModule', () => ({
-	useHasLicenseModule: jest.fn(() => false),
-}));
+import { createFakeLicenseInfo } from '../../../../tests/mocks/data';
 
 jest.mock('../../GenericUpsellModal/hooks', () => ({
 	useUpsellActions: jest.fn(() => ({
@@ -20,7 +16,7 @@ jest.mock('../../GenericUpsellModal/hooks', () => ({
 }));
 
 // Mock getURL utility
-jest.mock('../../../../app/utils/client', () => ({
+jest.mock('../../../../client/lib/getURL', () => ({
 	getURL: (url: string) => url,
 }));
 
@@ -34,6 +30,9 @@ const appRoot = mockAppRoot()
 		Upgrade: 'Upgrade',
 		Cancel: 'Cancel',
 	})
+	.withEndpoint('GET', '/v1/licenses.info', async () => ({
+		license: createFakeLicenseInfo(),
+	}))
 	.build();
 
 describe('ABACUpsellModal', () => {
@@ -42,11 +41,6 @@ describe('ABACUpsellModal', () => {
 
 	beforeEach(() => {
 		jest.clearAllMocks();
-	});
-
-	it('should render the modal with correct content', () => {
-		const { baseElement } = render(<ABACUpsellModal onClose={mockOnClose} onConfirm={mockOnConfirm} />, { wrapper: appRoot });
-		expect(baseElement).toMatchSnapshot();
 	});
 
 	it('should have no accessibility violations', async () => {

@@ -1,7 +1,8 @@
-import type { Meta, StoryFn } from '@storybook/react';
+import { Box } from '@rocket.chat/fuselage';
+import { Contextualbar } from '@rocket.chat/ui-client';
+import type { StoryObj, Meta } from '@storybook/react';
 
 import AddUsers from './AddUsers';
-import { Contextualbar } from '../../../../../components/Contextualbar';
 
 export default {
 	component: AddUsers,
@@ -9,8 +10,15 @@ export default {
 		layout: 'fullscreen',
 		actions: { argTypesRegex: '^on.*' },
 	},
-	decorators: [(fn) => <Contextualbar height='100vh'>{fn()}</Contextualbar>],
+	decorators: [
+		(fn) => (
+			<Box height='100vh'>
+				<Contextualbar>{fn()}</Contextualbar>
+			</Box>
+		),
+	],
 } satisfies Meta<typeof AddUsers>;
 
-export const Default: StoryFn<typeof AddUsers> = (args) => <AddUsers {...args} />;
-Default.storyName = 'AddUsers';
+export const Default: StoryObj<typeof AddUsers> = {
+	name: 'AddUsers',
+};

@@ -3,8 +3,10 @@ import type { ComponentProps } from 'react';
 
 import { useHasLicenseModule } from '../../../hooks/useHasLicenseModule';
 
-export const EeTextInput = ({ label, ...props }: { label: string } & ComponentProps<typeof TextInput>) => {
-	const hasLicense = useHasLicenseModule('livechat-enterprise');
+export type EeTextInputProps = { label: string } & ComponentProps<typeof TextInput>;
+
+export const EeTextInput = ({ label, ...props }: EeTextInputProps) => {
+	const { data: hasLicense = false } = useHasLicenseModule('livechat-enterprise');
 
 	if (!hasLicense) {
 		return null;

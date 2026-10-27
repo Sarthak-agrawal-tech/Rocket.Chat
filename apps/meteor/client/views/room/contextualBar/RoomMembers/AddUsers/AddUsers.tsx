@@ -1,14 +1,7 @@
 import type { IRoom } from '@rocket.chat/core-typings';
-import { isRoomFederated, isRoomNativeFederated } from '@rocket.chat/core-typings';
+import { isRoomFederated, isRoomNativeFederated, isRoomXMPPHostedMuc } from '@rocket.chat/core-typings';
 import { Field, FieldError, FieldLabel, Button, ButtonGroup, FieldGroup } from '@rocket.chat/fuselage';
-import { useEffectEvent } from '@rocket.chat/fuselage-hooks';
-import { useToastMessageDispatch, useMethod } from '@rocket.chat/ui-contexts';
-import { useId } from 'react';
-import type { ReactElement } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
-
-import { useAddMatrixUsers } from './AddMatrixUsers/useAddMatrixUsers';
+import { useStableCallback } from '@rocket.chat/fuselage-hooks';
 import {
 	ContextualbarHeader,
 	ContextualbarBack,
@@ -17,21 +10,26 @@ import {
 	ContextualbarScrollableContent,
 	ContextualbarFooter,
 	ContextualbarDialog,
-} from '../../../../../components/Contextualbar';
+} from '@rocket.chat/ui-client';
+import { useToastMessageDispatch, useSetModal, useEndpoint, useRoomToolbox } from '@rocket.chat/ui-contexts';
+import { useId } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+
+import { useAddMatrixUsers } from './AddMatrixUsers/useAddMatrixUsers';
+import BannedUsersUnbanModal from './BannedUsersUnbanModal';
 import UserAutoCompleteMultiple from '../../../../../components/UserAutoCompleteMultiple';
-import UserAutoCompleteMultipleFederated from '../../../../../components/UserAutoCompleteMultiple/UserAutoCompleteMultipleFederated';
 import { useRoom } from '../../../contexts/RoomContext';
-import { useRoomToolbox } from '../../../contexts/RoomToolboxContext';
 
 const hasExternalUsers = (users: string[]): boolean => users.some((user) => user.startsWith('@'));
 
-type AddUsersProps = {
+export type AddUsersProps = {
 	rid: IRoom['_id'];
 	onClickBack: () => void;
 	reload: () => void;
 };
 
-const AddUsers = ({ rid, onClickBack, reload }: AddUsersProps): ReactElement => {
+const AddUsers = ({ rid, onClickBack, reload }: AddUsersProps) => {
 	const { t } = useTranslation();
 	const dispatchToastMessage = useToastMessageDispatch();
 	const room = useRoom();
@@ -39,9 +37,15 @@ const AddUsers = ({ rid, onClickBack, reload }: AddUsersProps): ReactElement => 
 	const roomIsFederated = isRoomFederated(room);
 	// we are dropping the non native federation for now
 	const isFederationBlocked = room && !isRoomNativeFederated(room);
+	const isFederated = roomIsFederated && !isFederationBlocked;
+	const isXmppHostedMuc = isRoomXMPPHostedMuc(room);
 
+	const setModal = useSetModal();
 	const { closeTab } = useRoomToolbox();
-	const saveAction = useMethod('addUsersToRoom');
+	const inviteToChannel = useEndpoint('POST', '/v1/channels.invite');
+	const inviteToGroup = useEndpoint('POST', '/v1/groups.invite');
+	const getBannedUsers = useEndpoint('GET', '/v1/rooms.bannedUsers');
+	const unbanUser = useEndpoint('POST', '/v1/rooms.unbanUser');
 
 	const {
 		handleSubmit,
@@ -50,13 +54,57 @@ const AddUsers = ({ rid, onClickBack, reload }: AddUsersProps): ReactElement => 
 		formState: { isDirty, isSubmitting, errors },
 	} = useForm({ defaultValues: { users: [] } });
 
-	const handleSave = useEffectEvent(async ({ users }: { users: string[] }) => {
+	const handleSave = useStableCallback(async ({ users, unbanConfirmed }: { users: string[]; unbanConfirmed?: boolean }) => {
+		if (unbanConfirmed) {
+			const { bannedUsers } = await getBannedUsers({ roomId: rid });
+			const bannedSet = new Set(bannedUsers.map((u) => u.username));
+			const usersToUnban = users.filter((username) => bannedSet.has(username));
+
+			if (usersToUnban.length) {
+				await Promise.all(usersToUnban.map((username) => unbanUser({ roomId: rid, username })));
+			}
+		}
+		await Promise.all(
+			users.map((username) => (room.t === 'c' ? inviteToChannel({ roomId: rid, username }) : inviteToGroup({ roomId: rid, username }))),
+		);
+		dispatchToastMessage({ type: 'success', message: t(roomIsFederated && !isFederationBlocked ? 'Users_invited' : 'Users_added') });
+		onClickBack();
+		reload();
+	});
+
+	const handleSaveWithBannedCheck = useStableCallback(async ({ users }: { users: string[] }) => {
 		try {
-			await saveAction({ rid, users });
-			dispatchToastMessage({ type: 'success', message: t(roomIsFederated && !isFederationBlocked ? 'Users_invited' : 'Users_added') });
-			onClickBack();
-			reload();
-		} catch (error) {
+			await handleSave({ users });
+		} catch (error: any) {
+			if (error.error === 'error-user-is-banned') {
+				const { bannedUsers } = await getBannedUsers({ roomId: rid });
+				const bannedSet = new Set(bannedUsers.map((u) => u.username));
+				const usersToUnban = users.filter((username) => bannedSet.has(username));
+
+				if (usersToUnban.length) {
+					setModal(
+						<BannedUsersUnbanModal
+							onClose={() => setModal(null)}
+							onConfirm={async () => {
+								await Promise.all(usersToUnban.map((username) => unbanUser({ roomId: rid, username })));
+								await Promise.all(
+									users.map((username) =>
+										room.t === 'c' ? inviteToChannel({ roomId: rid, username }) : inviteToGroup({ roomId: rid, username }),
+									),
+								);
+								setModal(null);
+								dispatchToastMessage({
+									type: 'success',
+									message: t(roomIsFederated && !isFederationBlocked ? 'Users_invited' : 'Users_added'),
+								});
+								onClickBack();
+								reload();
+							}}
+						/>,
+					);
+					return;
+				}
+			}
 			dispatchToastMessage({ type: 'error', message: error as Error });
 		}
 	});
@@ -73,25 +121,23 @@ const AddUsers = ({ rid, onClickBack, reload }: AddUsersProps): ReactElement => 
 			<ContextualbarScrollableContent>
 				<FieldGroup>
 					<Field>
-						<FieldLabel flexGrow={0}>{t('Choose_users')}</FieldLabel>
-						{roomIsFederated ? (
-							!isFederationBlocked && (
-								<Controller
-									name='users'
-									control={control}
-									render={({ field }) => <UserAutoCompleteMultipleFederated {...field} placeholder={t('Choose_users')} />}
+						<FieldLabel>{t('Choose_users')}</FieldLabel>
+						<Controller
+							name='users'
+							control={control}
+							rules={{
+								validate: (users) => !isFederated && (!hasExternalUsers(users) || t('You_cannot_add_external_users_to_non_federated_room')),
+							}}
+							render={({ field }) => (
+								<UserAutoCompleteMultiple
+									federated={isFederated}
+									xmpp={isXmppHostedMuc}
+									placeholder={t('Choose_users')}
+									aria-describedby={`${usersFieldId}-error`}
+									{...field}
 								/>
-							)
-						) : (
-							<Controller
-								name='users'
-								control={control}
-								rules={{ validate: (users) => !hasExternalUsers(users) || t('You_cannot_add_external_users_to_non_federated_room') }}
-								render={({ field }) => (
-									<UserAutoCompleteMultiple {...field} placeholder={t('Choose_users')} aria-describedby={`${usersFieldId}-error`} />
-								)}
-							/>
-						)}
+							)}
+						/>
 						{errors.users && (
 							<FieldError role='alert' id={`${usersFieldId}-error`}>
 								{errors.users.message}
@@ -105,7 +151,7 @@ const AddUsers = ({ rid, onClickBack, reload }: AddUsersProps): ReactElement => 
 					{roomIsFederated ? (
 						!isFederationBlocked && (
 							<Button
-								primary
+								variant='primary'
 								disabled={addClickHandler.isPending || !isDirty}
 								onClick={() =>
 									addClickHandler.mutate({
@@ -118,7 +164,7 @@ const AddUsers = ({ rid, onClickBack, reload }: AddUsersProps): ReactElement => 
 							</Button>
 						)
 					) : (
-						<Button primary loading={isSubmitting} disabled={!isDirty} onClick={handleSubmit(handleSave)}>
+						<Button variant='primary' loading={isSubmitting} disabled={!isDirty} onClick={handleSubmit(handleSaveWithBannedCheck)}>
 							{t('Add_users')}
 						</Button>
 					)}

@@ -1,16 +1,12 @@
-import { Authorization, Room } from '@rocket.chat/core-services';
-import { isUserNativeFederated, type IUser } from '@rocket.chat/core-typings';
-import type { PduMembershipEventContent, PersistentEventBase, RoomVersion } from '@rocket.chat/federation-sdk';
-import { eventIdSchema, roomIdSchema, NotAllowedError, federationSDK } from '@rocket.chat/federation-sdk';
+import { FederationMatrix } from '@rocket.chat/core-services';
+import { NotAllowedError, federationSDK } from '@rocket.chat/federation-sdk';
 import { Router } from '@rocket.chat/http-router';
-import { Logger } from '@rocket.chat/logger';
-import { Rooms, Users } from '@rocket.chat/models';
+import { Users } from '@rocket.chat/models';
 import { ajv } from '@rocket.chat/rest-typings/dist/v1/Ajv';
 
-import { createOrUpdateFederatedUser, getUsernameServername } from '../../FederationMatrix';
+import { getUsernameServername } from '../../helpers/getUsernameServername';
+import { logger } from '../logger';
 import { isAuthenticatedMiddleware } from '../middlewares/isAuthenticated';
-
-const logger = new Logger('federation-matrix:invite');
 
 const EventBaseSchema = {
 	type: 'object',
@@ -67,7 +63,7 @@ const EventBaseSchema = {
 			nullable: true,
 		},
 	},
-	required: ['type', 'content', 'sender', 'room_id', 'origin_server_ts', 'depth', 'prev_events', 'auth_events', 'origin'],
+	required: ['type', 'content', 'sender', 'room_id', 'origin_server_ts', 'depth', 'prev_events', 'auth_events'],
 };
 
 const MembershipEventContentSchema = {
@@ -134,188 +130,27 @@ const ProcessInviteResponseSchema = {
 
 const isProcessInviteResponseProps = ajv.compile(ProcessInviteResponseSchema);
 
-// 5 seconds
-// 25 seconds
-// 625 seconds = 10 minutes 25 seconds // max
-async function runWithBackoff(fn: () => Promise<void>, delaySec = 5) {
-	try {
-		await fn();
-	} catch (e) {
-		// don't retry on authorization/validation errors - they won't succeed on retry
-		if (e instanceof NotAllowedError) {
-			logger.error('Authorization error, not retrying:', e);
-			return;
-		}
-
-		const delay = Math.min(625, delaySec ** 2);
-		logger.error(`error occurred, retrying in ${delay}s`, e);
-		setTimeout(() => {
-			runWithBackoff(fn, delay);
-		}, delay * 1000);
-	}
-}
-
-async function joinRoom({
-	inviteEvent,
-	user, // ours trying to join the room
-}: {
-	inviteEvent: PersistentEventBase<RoomVersion, 'm.room.member'>;
-	user: IUser;
-}) {
-	// from the response we get the event
-	if (!inviteEvent.stateKey) {
-		throw new Error('join event has missing state key, unable to determine user to join');
-	}
-
-	// backoff needed for this call, can fail
-	await federationSDK.joinUser(inviteEvent, inviteEvent.event.state_key);
-
-	// now we create the room we saved post joining
-	const matrixRoom = await federationSDK.getLatestRoomState2(inviteEvent.roomId);
-	if (!matrixRoom) {
-		throw new Error('room not found not processing invite');
-	}
-
-	// we only understand these two types of rooms, plus direct messages
-	const isDM = inviteEvent.getContent<PduMembershipEventContent>().is_direct;
-
-	if (!isDM && !matrixRoom.isPublic() && !matrixRoom.isInviteOnly()) {
-		throw new Error('room is neither direct message - rocketchat is unable to join for now');
-	}
-
-	// need both the sender and the participating user to exist in the room
-	// TODO implement on model
-	const senderUser = await Users.findOneByUsername(inviteEvent.sender, { projection: { _id: 1 } });
-
-	const senderUserId =
-		senderUser?._id ||
-		(await createOrUpdateFederatedUser({
-			username: inviteEvent.sender,
-			origin: matrixRoom.origin,
-		}));
-
-	if (!senderUserId) {
-		throw new Error('Sender user ID not found');
-	}
-
-	let internalRoomId: string;
-
-	const internalMappedRoom = await Rooms.findOne({ 'federation.mrid': inviteEvent.roomId });
-
-	if (!internalMappedRoom) {
-		let roomType: 'c' | 'p' | 'd';
-
-		if (isDM) {
-			roomType = 'd';
-		} else if (matrixRoom.isPublic()) {
-			roomType = 'c';
-		} else if (matrixRoom.isInviteOnly()) {
-			roomType = 'p';
-		} else {
-			throw new Error('room is neither public, private, nor direct message - rocketchat is unable to join for now');
-		}
-
-		let ourRoom: { _id: string };
-
-		if (isDM) {
-			const senderUser = await Users.findOneById(senderUserId, { projection: { _id: 1, username: 1 } });
-			const inviteeUser = user;
-
-			if (!senderUser?.username) {
-				throw new Error('Sender user not found');
-			}
-			if (!inviteeUser?.username) {
-				throw new Error('Invitee user not found');
-			}
-
-			ourRoom = await Room.create(senderUserId, {
-				type: roomType,
-				name: inviteEvent.sender,
-				members: [senderUser.username, inviteeUser.username],
-				options: {
-					federatedRoomId: inviteEvent.roomId,
-					creator: senderUserId,
-				},
-				extraData: {
-					federated: true,
-				},
-			});
-		} else {
-			const roomFname = `${matrixRoom.name}:${matrixRoom.origin}`;
-			const roomName = inviteEvent.roomId.replace('!', '').replace(':', '_');
-
-			ourRoom = await Room.create(senderUserId, {
-				type: roomType,
-				name: roomName,
-				options: {
-					federatedRoomId: inviteEvent.roomId,
-					creator: senderUserId,
-				},
-				extraData: {
-					federated: true,
-					fname: roomFname,
-				},
-			});
-		}
-
-		internalRoomId = ourRoom._id;
-	} else {
-		internalRoomId = internalMappedRoom._id;
-	}
-
-	await Room.addUserToRoom(internalRoomId, { _id: user._id }, { _id: senderUserId, username: inviteEvent.sender });
-}
-
-async function startJoiningRoom(...opts: Parameters<typeof joinRoom>) {
-	void runWithBackoff(() => joinRoom(...opts));
-}
-
-// This is a special case where inside rocket chat we invite users inside rockechat, so if the sender or the invitee are external iw should throw an error
-export const acceptInvite = async (inviteEvent: PersistentEventBase<RoomVersion, 'm.room.member'>, username: string) => {
-	if (!inviteEvent.stateKey) {
-		throw new Error('join event has missing state key, unable to determine user to join');
-	}
-
-	const internalMappedRoom = await Rooms.findOne({ 'federation.mrid': inviteEvent.roomId });
-	if (!internalMappedRoom) {
-		throw new Error('room not found not processing invite');
-	}
-
-	const serverName = federationSDK.getConfig('serverName');
-
-	const inviter = await Users.findOneByUsername<Pick<IUser, '_id' | 'username'>>(getUsernameServername(inviteEvent.sender, serverName)[0], {
-		projection: { _id: 1, username: 1 },
-	});
-
-	if (!inviter) {
-		throw new Error('Sender user ID not found');
-	}
-	if (isUserNativeFederated(inviter)) {
-		throw new Error('Sender user is native federated');
-	}
-
-	const user = await Users.findOneByUsername<Pick<IUser, '_id' | 'username' | 'federation' | 'federated'>>(username, {
-		projection: { username: 1, federation: 1, federated: 1 },
-	});
-
-	// we cannot accept invites from users that are external
-	if (!user) {
-		throw new Error('User not found');
-	}
-	if (isUserNativeFederated(user)) {
-		throw new Error('User is native federated');
-	}
-
-	await federationSDK.joinUser(inviteEvent, inviteEvent.event.state_key);
-};
-
 export const getMatrixInviteRoutes = () => {
-	const logger = new Logger('matrix-invite');
-
+	// PUT /_matrix/federation/v2/invite/{roomId}/{eventId}
+	// https://spec.matrix.org/v1.19/server-server-api/#put_matrixfederationv2inviteroomideventid
 	return new Router('/federation').put(
 		'/v2/invite/:roomId/:eventId',
 		{
-			body: ajv.compile({ type: 'object' }), // TODO: add schema from room package.
+			// TODO: add schema from room package. `event` is a PDU whose format varies by room
+			// version, so it stays unconstrained here; room_version and event are required per spec.
+			body: ajv.compile({
+				type: 'object',
+				properties: {
+					room_version: { type: 'string' },
+					event: { type: 'object' },
+					invite_room_state: {
+						type: 'array',
+						items: { type: 'object' },
+						nullable: true,
+					},
+				},
+				required: ['room_version', 'event'],
+			}),
 			params: isProcessInviteParamsProps,
 			response: {
 				200: isProcessInviteResponseProps,
@@ -328,35 +163,77 @@ export const getMatrixInviteRoutes = () => {
 			const { roomId, eventId } = c.req.param();
 			const { event, room_version: roomVersion, invite_room_state: strippedStateEvents } = await c.req.json();
 
-			const userToCheck = event.state_key as string;
+			const userToCheck = event.state_key;
 
-			if (!userToCheck) {
-				throw new Error('join event has missing state key, unable to determine user to join');
+			// matches Synapse: the PDU itself stays unvalidated, but an event that is not an invite
+			// membership event cannot be processed, so reject it instead of failing later
+			if (typeof userToCheck !== 'string' || !userToCheck || event.type !== 'm.room.member' || event.content?.membership !== 'invite') {
+				return {
+					body: {
+						errcode: 'M_UNKNOWN',
+						error: 'The event was not an m.room.member invite event',
+					},
+					statusCode: 400,
+				};
 			}
 
+			// spec: servers SHOULD return M_INVALID_PARAM if m.room.create is missing from invite_room_state
 			if (!strippedStateEvents?.some((e: any) => e.type === 'm.room.create')) {
 				return {
 					body: {
-						errcode: 'M_MISSING_PARAM',
+						errcode: 'M_INVALID_PARAM',
 						error: 'Missing invite_room_state: m.room.create event is required',
 					},
 					statusCode: 400,
 				};
 			}
 
-			const [username /* domain */] = userToCheck.split(':');
+			// spec grammar is `@localpart:server_name`, where localpart is non-empty. deliberately
+			// not `validateFederatedUsername`, which is stricter than the spec and would reject
+			// legal localparts containing `/` or `+`
+			if (!/^@[A-Za-z0-9_=/.+-]+:.+$/.test(userToCheck)) {
+				return {
+					body: {
+						errcode: 'M_UNKNOWN',
+						error: 'The invite event state_key is not a valid user ID',
+					},
+					statusCode: 400,
+				};
+			}
 
-			// TODO: check domain
+			// an invite addressed to a user of another homeserver would create a local subscription
+			// that can never be accepted, since the remote server never invited our copy of that user
+			const [username, , isLocalUser] = getUsernameServername(userToCheck, federationSDK.getConfig('serverName'));
 
-			const ourUser = await Users.findOneByUsername(username.slice(1));
+			if (!isLocalUser) {
+				return {
+					body: {
+						errcode: 'M_UNKNOWN',
+						error: 'The invite event must be for a user of this server',
+					},
+					statusCode: 400,
+				};
+			}
 
+			const ourUser = await Users.findOneByUsername(username);
+
+			// same response as the federation permission check below, so an unauthorized remote
+			// server cannot use the invite endpoint to probe which local users exist
 			if (!ourUser) {
-				throw new Error('user not found not processing invite');
+				logger.info({ msg: 'Invite for unknown local user, rejecting invite to room', userId: userToCheck, roomId });
+
+				return {
+					body: {
+						errcode: 'M_FORBIDDEN',
+						error: 'User does not have permission to access federation',
+					},
+					statusCode: 403,
+				};
 			}
 
 			// check federation permission before processing the invite
-			if (!(await Authorization.hasPermission(ourUser._id, 'access-federation'))) {
-				logger.info(`User ${userToCheck} denied federation access, rejecting invite to room ${roomId}`);
+			if (!(await FederationMatrix.canUserAccessFederation(ourUser))) {
+				logger.info({ msg: 'User denied federation access, rejecting invite to room', userId: userToCheck, roomId });
 
 				return {
 					body: {
@@ -368,24 +245,7 @@ export const getMatrixInviteRoutes = () => {
 			}
 
 			try {
-				const inviteEvent = await federationSDK.processInvite(
-					event,
-					roomIdSchema.parse(roomId),
-					eventIdSchema.parse(eventId),
-					roomVersion,
-					c.get('authenticatedServer'),
-					strippedStateEvents,
-				);
-
-				setTimeout(
-					() => {
-						void startJoiningRoom({
-							inviteEvent,
-							user: ourUser,
-						});
-					},
-					inviteEvent.event.content.is_direct ? 2000 : 0,
-				);
+				const inviteEvent = await federationSDK.processInvite(event, eventId, roomVersion, strippedStateEvents);
 
 				return {
 					body: {

@@ -1,19 +1,13 @@
+import crypto from 'crypto';
+
+import type { IUploadDetails } from '@rocket.chat/apps-engine/definition/uploads/IUploadDetails';
 import { Upload } from '@rocket.chat/core-services';
 import type { IUpload } from '@rocket.chat/core-typings';
 import { federationSDK } from '@rocket.chat/federation-sdk';
 import { Logger } from '@rocket.chat/logger';
-import { Uploads } from '@rocket.chat/models';
+import { Avatars, Uploads } from '@rocket.chat/models';
 
 const logger = new Logger('federation-matrix:media-service');
-
-export interface IRemoteFileReference {
-	name: string;
-	size: number;
-	type: string;
-	mxcUri: string;
-	serverName: string;
-	mediaId: string;
-}
 
 export class MatrixMediaService {
 	static generateMXCUri(fileId: string, serverName: string): string {
@@ -23,7 +17,7 @@ export class MatrixMediaService {
 	static parseMXCUri(mxcUri: string): { serverName: string; mediaId: string } | null {
 		const match = mxcUri.match(/^mxc:\/\/([^/]+)\/(.+)$/);
 		if (!match) {
-			logger.error('Invalid MXC URI format', { mxcUri });
+			logger.error({ mxcUri, msg: 'Invalid MXC URI format' });
 			return null;
 		}
 		return {
@@ -36,7 +30,7 @@ export class MatrixMediaService {
 		try {
 			const file = await Uploads.findOneById(fileId);
 			if (!file) {
-				logger.error(`File ${fileId} not found in database`);
+				logger.error({ msg: 'File not found in database', fileId });
 				throw new Error(`File ${fileId} not found`);
 			}
 
@@ -54,14 +48,20 @@ export class MatrixMediaService {
 			});
 
 			return mxcUri;
-		} catch (error) {
-			logger.error('Error preparing file for Matrix:', error);
-			throw error;
+		} catch (err) {
+			logger.error({ msg: 'Error preparing file for Matrix', err });
+			throw err;
 		}
 	}
 
 	static async getLocalFileForMatrixNode(mediaId: string, serverName: string): Promise<IUpload | null> {
 		try {
+			// try to find an avatar with the given mediaId as etag first, the index tends to be smaller
+			const avatarFile = await Avatars.findOneByETag(mediaId);
+			if (avatarFile) {
+				return avatarFile;
+			}
+
 			let file = await Uploads.findByFederationMediaIdAndServerName(mediaId, serverName);
 
 			if (!file) {
@@ -73,33 +73,63 @@ export class MatrixMediaService {
 			}
 
 			return file;
-		} catch (error) {
-			logger.error('Error retrieving local file:', error);
+		} catch (err) {
+			logger.error({ msg: 'Error retrieving local file', err });
 			return null;
 		}
 	}
 
-	static async downloadAndStoreRemoteFile(
-		mxcUri: string,
-		matrixRoomId: string,
-		metadata: {
-			name: string;
-			size?: number;
-			type?: string;
-			messageId?: string;
-			roomId?: string;
-			userId?: string;
-		},
-	): Promise<string> {
+	static async uploadFromAppService(params: {
+		buffer: Buffer;
+		fileName: string;
+		mimeType: string;
+		userId: string;
+	}): Promise<{ mediaId: string; mxcUri: string }> {
+		try {
+			const serverName = federationSDK.getConfig('serverName');
+			const mediaId = crypto.randomUUID().replace(/-/g, ''); // TODO maybe change to @rocket.chat/random ?
+			const mxcUri = this.generateMXCUri(mediaId, serverName);
+
+			await Upload.uploadFile({
+				userId: params.userId,
+				buffer: params.buffer,
+				details: {
+					name: params.fileName,
+					size: params.buffer.length,
+					type: params.mimeType,
+					rid: '',
+					userId: params.userId,
+				},
+				federation: {
+					mxcUri,
+					mrid: '',
+					serverName,
+					mediaId,
+				},
+			});
+
+			return { mediaId, mxcUri };
+		} catch (err) {
+			logger.error({ msg: 'Error uploading file from app service', err });
+			throw err;
+		}
+	}
+
+	static async downloadAndStoreRemoteFile(mxcUri: string, matrixRoomId: string, metadata: IUploadDetails): Promise<string> {
 		try {
 			const parts = this.parseMXCUri(mxcUri);
 			if (!parts) {
-				logger.error('Invalid MXC URI format', { mxcUri });
+				logger.error({ mxcUri, msg: 'Invalid MXC URI format' });
 				throw new Error('Invalid MXC URI');
 			}
 
 			const uploadAlreadyExists = await Uploads.findByFederationMediaIdAndServerName(parts.mediaId, parts.serverName);
 			if (uploadAlreadyExists) {
+				// App-service uploads are stored before any room is known (empty rid/mrid);
+				// backfill the association now that a message ties the file to a room.
+				if (!uploadAlreadyExists.rid && metadata.rid) {
+					await Uploads.setFederationRoomInfo(uploadAlreadyExists._id, metadata.rid, matrixRoomId);
+				}
 				return uploadAlreadyExists._id;
 			}
 
@@ -113,11 +143,8 @@ export class MatrixMediaService {
 				userId: metadata.userId || 'federation',
 				buffer,
 				details: {
-					name: metadata.name || 'unnamed',
+					...metadata,
 					size: buffer.length,
-					type: metadata.type || 'application/octet-stream',
-					rid: metadata.roomId,
-					userId: metadata.userId || 'federation',
 				},
 			});
 
@@ -129,9 +156,9 @@ export class MatrixMediaService {
 			});
 
 			return uploadedFile._id;
-		} catch (error) {
-			logger.error('Error downloading and storing remote file:', error);
-			throw error;
+		} catch (err) {
+			logger.error({ msg: 'Error downloading and storing remote file', err });
+			throw err;
 		}
 	}
 

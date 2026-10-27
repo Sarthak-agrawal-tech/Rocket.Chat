@@ -1,10 +1,10 @@
 import type { LivechatPriorityWeight } from '@rocket.chat/core-typings';
+import { GenericTableCell, GenericTableRow } from '@rocket.chat/ui-client';
 import { useTranslation } from 'react-i18next';
 
 import { PriorityIcon } from './PriorityIcon';
-import { GenericTableCell, GenericTableRow } from '../../../components/GenericTable';
 
-type PrioritiesTableRowProps = {
+export type PrioritiesTableRowProps = {
 	id: string;
 	name?: string;
 	i18n: string;
@@ -16,11 +16,11 @@ type PrioritiesTableRowProps = {
 const PrioritiesTableRow = ({ id, name, i18n, sortItem, dirty, onClick }: PrioritiesTableRowProps) => {
 	const { t } = useTranslation();
 	return (
-		<GenericTableRow tabIndex={0} role='link' onClick={onClick} action qa-row-id={id}>
-			<GenericTableCell withTruncatedText>
+		<GenericTableRow tabIndex={0} onClick={onClick} action qa-row-id={id}>
+			<GenericTableCell truncate>
 				<PriorityIcon level={sortItem} />
 			</GenericTableCell>
-			<GenericTableCell withTruncatedText>{dirty ? name : t(i18n)}</GenericTableCell>
+			<GenericTableCell truncate>{dirty ? name : t(i18n)}</GenericTableCell>
 		</GenericTableRow>
 	);
 };

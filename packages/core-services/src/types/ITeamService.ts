@@ -1,11 +1,12 @@
 import type {
+	IAbacAttributeDefinition,
 	IPaginationOptions,
 	IQueryOptions,
 	IRecordsWithTotal,
 	ITeam,
 	ITeamMember,
 	ITeamStats,
-	TEAM_TYPE,
+	TeamType,
 	IRoom,
 	IUser,
 	IRole,
@@ -24,6 +25,7 @@ export interface ITeamCreateParams {
 	room: ITeamCreateRoom;
 	members?: Array<string> | null; // list of user _ids
 	owner?: string | null; // the team owner. If not present, owner = requester
+	abacAttributes?: IAbacAttributeDefinition[];
 }
 
 export interface ITeamMemberParams {
@@ -61,18 +63,18 @@ export interface IListRoomsFilter {
 export type ITeamUpdateData = { updateRoom?: boolean } & (
 	| {
 			name: string;
-			type?: TEAM_TYPE;
+			type?: TeamType;
 	  }
 	| {
 			name?: string;
-			type: TEAM_TYPE;
+			type: TeamType;
 	  }
 );
 
 export type ITeamAutocompleteResult = Pick<IRoom, '_id' | 'fname' | 'teamId' | 'name' | 't' | 'avatarETag'>;
 
 export interface ITeamService {
-	create(uid: string, params: ITeamCreateParams): Promise<ITeam>;
+	create(uid: string, params: ITeamCreateParams): Promise<ITeam & { skippedMembers?: string[] }>;
 	addRooms(uid: string, rooms: Array<string>, teamId: string): Promise<Array<IRoom>>;
 	removeRoom(uid: string, rid: string, teamId: string, canRemoveAnyRoom: boolean): Promise<IRoom>;
 	listRooms(uid: string, teamId: string, filter: IListRoomsFilter, pagination: IPaginationOptions): Promise<IRecordsWithTotal<IRoom>>;

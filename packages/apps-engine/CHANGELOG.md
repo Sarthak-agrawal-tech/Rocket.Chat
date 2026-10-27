@@ -1,5 +1,247 @@
 # @rocket.chat/apps-engine
 
+## 1.67.0
+
+### Minor Changes
+
+- ([#41681](https://github.com/RocketChat/Rocket.Chat/pull/41681)) Adds media call lifecycle events to the Apps-Engine: an app implementing the new `IMediaCallHandler` interface can now observe calls starting, being answered and ending, and can block a call or change the features it was requested with before it is created
+
+- ([#42229](https://github.com/RocketChat/Rocket.Chat/pull/42229)) Adds a read-only call history accessor for apps. An app that declares the new `media-call.history` permission can read a user's call history through `read.getCallHistoryReader()`, which exposes `getById`, `getByCallId` and a paginated `search`.
+
+## 1.67.0-rc.0
+
+### Minor Changes
+
+- ([#41681](https://github.com/RocketChat/Rocket.Chat/pull/41681)) Adds media call lifecycle events to the Apps-Engine: an app implementing the new `IMediaCallHandler` interface can now observe calls starting, being answered and ending, and can block a call or change the features it was requested with before it is created
+
+- ([#42229](https://github.com/RocketChat/Rocket.Chat/pull/42229)) Adds a read-only call history accessor for apps. An app that declares the new `media-call.history` permission can read a user's call history through `read.getCallHistoryReader()`, which exposes `getById`, `getByCallId` and a paginated `search`.
+
+## 1.66.0
+
+### Minor Changes
+
+- ([#41765](https://github.com/RocketChat/Rocket.Chat/pull/41765)) Accepts a role name in the `when.hasOneRole` and `when.hasAllRoles` filters of an app action button
+
+## 1.66.0-rc.0
+
+### Minor Changes
+
+- ([#41765](https://github.com/RocketChat/Rocket.Chat/pull/41765)) Accepts a role name in the `when.hasOneRole` and `when.hasAllRoles` filters of an app action button
+
+## 1.65.1
+
+### Patch Changes
+
+- ([#41304](https://github.com/RocketChat/Rocket.Chat/pull/41304)) Fixes wrong FederationLookup type assigned to IUser in apps. The correct data is there, but the type does not represent it.
+
+## 1.64.1-rc.0
+
+### Patch Changes
+
+- ([#41304](https://github.com/RocketChat/Rocket.Chat/pull/41304)) Fixes wrong FederationLookup type assigned to IUser in apps. The correct data is there, but the type does not represent it.
+
+## 1.64.1
+
+### Patch Changes
+
+- ([#41308](https://github.com/RocketChat/Rocket.Chat/pull/41308) by [@dionisio-bot](https://github.com/dionisio-bot)) Fixes wrong FederationLookup type assigned to IUser in apps. The correct data is there, but the type does not represent it.
+
+## 1.64.0
+
+### Minor Changes
+
+- ([#40791](https://github.com/RocketChat/Rocket.Chat/pull/40791)) Exposes the `isFederated` and `federation` fields for room and user objects in apps
+
+## 1.64.0-rc.0
+
+### Minor Changes
+
+- ([#40791](https://github.com/RocketChat/Rocket.Chat/pull/40791)) Exposes the `isFederated` and `federation` fields for room and user objects in apps
+
+## 1.63.0
+
+### Minor Changes
+
+- ([#40343](https://github.com/RocketChat/Rocket.Chat/pull/40343)) Remove files that weren't accessible to apps at development time
+
+- ([#40463](https://github.com/RocketChat/Rocket.Chat/pull/40463)) Allows apps with the right permission to read room's ABAC attributes.
+
+- ([#40604](https://github.com/RocketChat/Rocket.Chat/pull/40604)) Adds the capability for fetching a user by their sip extension to the apps
+
+## 1.63.0-rc.0
+
+### Minor Changes
+
+- ([#40343](https://github.com/RocketChat/Rocket.Chat/pull/40343)) Remove files that weren't accessible to apps at development time
+
+- ([#40463](https://github.com/RocketChat/Rocket.Chat/pull/40463)) Allows apps with the right permission to read room's ABAC attributes.
+
+- ([#40604](https://github.com/RocketChat/Rocket.Chat/pull/40604)) Adds the capability for fetching a user by their sip extension to the apps
+
+## 1.62.0
+
+### Minor Changes
+
+- ([#39535](https://github.com/RocketChat/Rocket.Chat/pull/39535)) Adds externalIds field to livechat visitors for external platform identification.
+
+- ([#40093](https://github.com/RocketChat/Rocket.Chat/pull/40093)) Adds new API endpoints to load the user's current voice call state from the server
+
+### Patch Changes
+
+- ([#40125](https://github.com/RocketChat/Rocket.Chat/pull/40125)) Security Hotfix (https://docs.rocket.chat/docs/security-fixes-and-updates)
+
+- ([#39883](https://github.com/RocketChat/Rocket.Chat/pull/39883)) Fixes the issue of the lacking MessageUpdater not being available to apps during runtime
+
+## 1.61.1
+
+### Patch Changes
+
+- ([#40130](https://github.com/RocketChat/Rocket.Chat/pull/40130) by [@dionisio-bot](https://github.com/dionisio-bot)) Security Hotfix (https://docs.rocket.chat/docs/security-fixes-and-updates)
+
+## 1.62.0-rc.0
+
+### Minor Changes
+
+- ([#39535](https://github.com/RocketChat/Rocket.Chat/pull/39535)) Adds externalIds field to livechat visitors for external platform identification.
+
+- ([#40093](https://github.com/RocketChat/Rocket.Chat/pull/40093)) Adds new API endpoints to load the user's current voice call state from the server
+
+### Patch Changes
+
+- ([#40125](https://github.com/RocketChat/Rocket.Chat/pull/40125)) Security Hotfix (https://docs.rocket.chat/docs/security-fixes-and-updates)
+
+- ([#39883](https://github.com/RocketChat/Rocket.Chat/pull/39883)) Fixes the issue of the lacking MessageUpdater not being available to apps during runtime
+
+## 1.61.0
+
+### Minor Changes
+
+- ([#39268](https://github.com/RocketChat/Rocket.Chat/pull/39268)) refactor(ui-kit): Remove UiKit deprecations
+
+### Patch Changes
+
+- ([#38989](https://github.com/RocketChat/Rocket.Chat/pull/38989)) chore(eslint): Upgrades ESLint and its configuration
+
+## 1.61.0-rc.0
+
+### Minor Changes
+
+- ([#39268](https://github.com/RocketChat/Rocket.Chat/pull/39268)) refactor(ui-kit): Remove UiKit deprecations
+
+### Patch Changes
+
+- ([#38989](https://github.com/RocketChat/Rocket.Chat/pull/38989)) chore(eslint): Upgrades ESLint and its configuration
+
+## 1.60.0
+
+### Minor Changes
+
+- ([#38099](https://github.com/RocketChat/Rocket.Chat/pull/38099)) Adds file metadata to the Apps.Engine for messages with multiple files
+
+### Patch Changes
+
+- ([#38374](https://github.com/RocketChat/Rocket.Chat/pull/38374)) Fixes an issue where apps logs were being lost in nested requests
+
+- ([#38513](https://github.com/RocketChat/Rocket.Chat/pull/38513)) Fixes an issue where app-defined API endpoints with dynamic paths could fail to receive requests when using path parameters like `:param`.
+
+## 1.60.0-rc.0
+
+### Minor Changes
+
+- ([#38099](https://github.com/RocketChat/Rocket.Chat/pull/38099)) Adds file metadata to the Apps.Engine for messages with multiple files
+
+### Patch Changes
+
+- ([#38374](https://github.com/RocketChat/Rocket.Chat/pull/38374)) Fixes an issue where apps logs were being lost in nested requests
+
+- ([#38513](https://github.com/RocketChat/Rocket.Chat/pull/38513)) Fixes an issue where app-defined API endpoints with dynamic paths could fail to receive requests when using path parameters like `:param`.
+
+## 1.59.1
+
+### Patch Changes
+
+- ([#38068](https://github.com/RocketChat/Rocket.Chat/pull/38068)) Fixes an issue that caused a spike in memory usage when apps handled the IPreFileUpload event
+
+## 1.59.1-rc.0
+
+### Patch Changes
+
+- ([#38068](https://github.com/RocketChat/Rocket.Chat/pull/38068)) Fixes an issue that caused a spike in memory usage when apps handled the IPreFileUpload event
+
+## 1.59.0
+
+### Minor Changes
+
+- ([#37719](https://github.com/RocketChat/Rocket.Chat/pull/37719)) Adds a new method to the Apps-Engine that allows apps to retrieve multiple rooms from database
+
+- ([#37672](https://github.com/RocketChat/Rocket.Chat/pull/37672)) Removes deprecated VoIP from Omnichannel
+
+- ([#37091](https://github.com/RocketChat/Rocket.Chat/pull/37091)) Adds Attribute Based Access Control (ABAC) for private channels & private teams.
+
+### Patch Changes
+
+- ([#37730](https://github.com/RocketChat/Rocket.Chat/pull/37730)) Adds an execution flag to apps-engine runtime that helps prevent the publishing of faulty builds
+
+## 1.59.0-rc.0
+
+### Minor Changes
+
+- ([#37719](https://github.com/RocketChat/Rocket.Chat/pull/37719)) Adds a new method to the Apps-Engine that allows apps to retrieve multiple rooms from database
+
+- ([#37672](https://github.com/RocketChat/Rocket.Chat/pull/37672)) Removes deprecated VoIP from Omnichannel
+
+- ([#37091](https://github.com/RocketChat/Rocket.Chat/pull/37091)) Adds Attribute Based Access Control (ABAC) for private channels & private teams.
+
+### Patch Changes
+
+- ([#37730](https://github.com/RocketChat/Rocket.Chat/pull/37730)) Adds an execution flag to apps-engine runtime that helps prevent the publishing of faulty builds
+
+## 1.58.0
+
+### Minor Changes
+
+- ([#37547](https://github.com/RocketChat/Rocket.Chat/pull/37547)) Adds the `getUserRoomIds` method to the `UserRead` accessor in the Apps-Engine, graduating it from the experimental bridge to the stable user bridge.
+
+- ([#37167](https://github.com/RocketChat/Rocket.Chat/pull/37167)) Changes a behavior that would store the result of every status transition that happened to apps
+
+  This caused intermediate status to be saved to the database, which could prevent apps from being restored to the desired status when restarted or during server startup.
+
+### Patch Changes
+
+- ([#37496](https://github.com/RocketChat/Rocket.Chat/pull/37496)) Fixes the ping behavior so it only triggers when the app becomes idle, preventing unnecessary restarts
+
+- ([#37380](https://github.com/RocketChat/Rocket.Chat/pull/37380)) Fixes an issue where apps would never get the bio of a user even though the type has the field defined
+
+- ([#37384](https://github.com/RocketChat/Rocket.Chat/pull/37384)) Fixes a problem in apps-engine debug logs where only 2 depth levels were displayed for objects, which is often not enough for debugging purposes
+
+- ([#37152](https://github.com/RocketChat/Rocket.Chat/pull/37152)) Fixes a bug that would cause apps to go into `invalid_installation_disabled` in some cases
+
+## 1.58.0-rc.0
+
+### Minor Changes
+
+- ([#37547](https://github.com/RocketChat/Rocket.Chat/pull/37547)) Adds the `getUserRoomIds` method to the `UserRead` accessor in the Apps-Engine, graduating it from the experimental bridge to the stable user bridge.
+
+- ([#37167](https://github.com/RocketChat/Rocket.Chat/pull/37167)) Changes a behavior that would store the result of every status transition that happened to apps
+
+  This caused intermediate status to be saved to the database, which could prevent apps from being restored to the desired status when restarted or during server startup.
+
+### Patch Changes
+
+- ([#37496](https://github.com/RocketChat/Rocket.Chat/pull/37496)) Fixes the ping behavior so it only triggers when the app becomes idle, preventing unnecessary restarts
+
+- ([#37380](https://github.com/RocketChat/Rocket.Chat/pull/37380)) Fixes an issue where apps would never get the bio of a user even though the type has the field defined
+
+- ([#37384](https://github.com/RocketChat/Rocket.Chat/pull/37384)) Fixes a problem in apps-engine debug logs where only 2 depth levels were displayed for objects, which is often not enough for debugging purposes
+
+- ([#37152](https://github.com/RocketChat/Rocket.Chat/pull/37152)) Fixes a bug that would cause apps to go into `invalid_installation_disabled` in some cases
+
+## 1.57.1
+
+### Patch Changes
+
+- ([#37440](https://github.com/RocketChat/Rocket.Chat/pull/37440) by [@dionisio-bot](https://github.com/dionisio-bot)) Fixes a problem in apps-engine debug logs where only 2 depth levels were displayed for objects, which is often not enough for debugging purposes
+
 ## 1.57.0
 
 ### Minor Changes

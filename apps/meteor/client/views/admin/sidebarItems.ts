@@ -1,6 +1,6 @@
 import { defaultFeaturesPreview } from '@rocket.chat/ui-client';
 
-import { hasPermission, hasAtLeastOnePermission, hasAllPermission } from '../../../app/authorization/client';
+import { hasPermission, hasAtLeastOnePermission, hasAllPermission } from '../../lib/authorization';
 import { createSidebarItems } from '../../lib/createSidebarItems';
 
 export const {
@@ -47,6 +47,14 @@ export const {
 		permissionGranted: (): boolean => hasPermission('view-user-administration'),
 	},
 	{
+		href: '/admin/ai-center',
+		i18nLabel: 'AI_Center',
+		icon: 'stars',
+		tag: 'Beta',
+		permissionGranted: (): boolean =>
+			hasAtLeastOnePermission(['view-privileged-setting', 'edit-privileged-setting', 'manage-selected-settings']),
+	},
+	{
 		href: '/admin/invites',
 		i18nLabel: 'Invites',
 		icon: 'user-plus',
@@ -54,7 +62,7 @@ export const {
 	},
 	{
 		href: '/admin/user-status',
-		i18nLabel: 'User_Status',
+		i18nLabel: 'Status_and_presence',
 		icon: 'user',
 		permissionGranted: (): boolean => hasAtLeastOnePermission(['manage-user-status']),
 	},
@@ -63,6 +71,19 @@ export const {
 		i18nLabel: 'Permissions',
 		icon: 'user-lock',
 		permissionGranted: (): boolean => hasAtLeastOnePermission(['access-permissions', 'access-setting-permissions']),
+	},
+	{
+		href: '/admin/ABAC',
+		i18nLabel: 'ABAC',
+		icon: 'team-lock',
+		permissionGranted: (): boolean =>
+			hasPermission('abac-management') &&
+			hasAtLeastOnePermission([
+				'manage-abac-admin-settings',
+				'manage-abac-admin-room-attributes',
+				'manage-abac-admin-rooms',
+				'view-abac-admin-audit',
+			]),
 	},
 	{
 		href: '/admin/device-management',
@@ -108,7 +129,7 @@ export const {
 		permissionGranted: (): boolean => hasPermission('run-import'),
 	},
 	{
-		href: '/admin/reports',
+		href: '/admin/analytic-reports',
 		i18nLabel: 'Reports',
 		icon: 'post',
 		permissionGranted: (): boolean => hasPermission('view-logs'),

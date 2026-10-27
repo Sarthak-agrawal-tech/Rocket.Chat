@@ -1,11 +1,10 @@
 import type { UsersListStatusParamsGET } from '@rocket.chat/rest-typings';
+import type { usePagination, useSort } from '@rocket.chat/ui-client';
 import { useEndpoint } from '@rocket.chat/ui-contexts';
 import { useQuery } from '@tanstack/react-query';
 import type { MutableRefObject } from 'react';
 import { useMemo } from 'react';
 
-import type { usePagination } from '../../../../components/GenericTable/hooks/usePagination';
-import type { useSort } from '../../../../components/GenericTable/hooks/useSort';
 import type { AdminUsersTab, UsersTableSortingOption } from '../AdminUsersPage';
 
 type UseFilteredUsersOptions = {
@@ -15,9 +14,18 @@ type UseFilteredUsersOptions = {
 	paginationData: ReturnType<typeof usePagination>;
 	sortData: ReturnType<typeof useSort<UsersTableSortingOption>>;
 	selectedRoles: string[];
+	statusManagement?: UsersListStatusParamsGET['statusManagement'];
 };
 
-const useFilteredUsers = ({ searchTerm, prevSearchTerm, sortData, paginationData, tab, selectedRoles }: UseFilteredUsersOptions) => {
+const useFilteredUsers = ({
+	searchTerm,
+	prevSearchTerm,
+	sortData,
+	paginationData,
+	tab,
+	selectedRoles,
+	statusManagement,
+}: UseFilteredUsersOptions) => {
 	const { setCurrent, itemsPerPage, current } = paginationData;
 	const { sortBy, sortDirection } = sortData;
 
@@ -29,16 +37,16 @@ const useFilteredUsers = ({ searchTerm, prevSearchTerm, sortData, paginationData
 		const listUsersPayload: Partial<Record<AdminUsersTab, UsersListStatusParamsGET>> = {
 			all: {},
 			pending: {
-				hasLoggedIn: false,
 				type: 'user',
-				status: 'active',
+				status: 'deactivated',
+				inactiveReason: ['pending_approval'],
 			},
 			active: {
-				hasLoggedIn: true,
 				status: 'active',
 			},
 			deactivated: {
 				status: 'deactivated',
+				inactiveReason: ['deactivated', 'idle_too_long'],
 			},
 		};
 
@@ -46,11 +54,12 @@ const useFilteredUsers = ({ searchTerm, prevSearchTerm, sortData, paginationData
 			...listUsersPayload[tab],
 			searchTerm,
 			roles: selectedRoles,
+			...(statusManagement && { statusManagement }),
 			sort: `{ "${sortBy}": ${sortDirection === 'asc' ? 1 : -1} }`,
 			count: itemsPerPage,
 			offset: searchTerm === prevSearchTerm.current ? current : 0,
 		};
-	}, [current, itemsPerPage, prevSearchTerm, searchTerm, selectedRoles, setCurrent, sortBy, sortDirection, tab]);
+	}, [current, itemsPerPage, prevSearchTerm, searchTerm, selectedRoles, setCurrent, sortBy, sortDirection, statusManagement, tab]);
 	const getUsers = useEndpoint('GET', '/v1/users.listByStatus');
 	const usersListQueryResult = useQuery({
 		queryKey: ['users.list', payload, tab],

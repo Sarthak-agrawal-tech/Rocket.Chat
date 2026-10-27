@@ -1,10 +1,10 @@
 import type { IThreadMainMessage } from '@rocket.chat/core-typings';
+import { ContextualbarTitle } from '@rocket.chat/ui-client';
 import { useMemo } from 'react';
 
-import { ContextualbarTitle } from '../../../../../components/Contextualbar';
 import { useNormalizedThreadTitleHtml } from '../hooks/useNormalizedThreadTitleHtml';
 
-type ThreadTitleProps = {
+export type ThreadTitleProps = {
 	mainMessage: IThreadMainMessage;
 };
 

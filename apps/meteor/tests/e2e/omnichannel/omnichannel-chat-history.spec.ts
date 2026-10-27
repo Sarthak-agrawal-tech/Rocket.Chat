@@ -3,7 +3,8 @@ import type { Page } from '@playwright/test';
 import { createFakeVisitor } from '../../mocks/data';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { OmnichannelLiveChat, HomeOmnichannel } from '../page-objects';
+import { HomeOmnichannel } from '../page-objects';
+import { OmnichannelLiveChat } from '../page-objects/omnichannel';
 import { test, expect } from '../utils/test';
 
 test.describe('Omnichannel chat history', () => {
@@ -35,9 +36,9 @@ test.describe('Omnichannel chat history', () => {
 		await api.post('/permissions.update', { permissions: [{ _id: 'preview-c-room', roles: ['admin', 'owner', 'moderator', 'user'] }] });
 	});
 
-	test('Receiving a message from visitor', async ({ page, api }) => {
+	test('Receiving a message from visitor', async ({ api }) => {
 		await test.step('Expect send a message as a visitor', async () => {
-			await page.goto('/livechat');
+			await poLiveChat.goto();
 			await poLiveChat.openLiveChat();
 			await poLiveChat.sendMessage(newVisitor, false);
 			await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor');
@@ -45,15 +46,15 @@ test.describe('Omnichannel chat history', () => {
 		});
 
 		await test.step('Expect to have 1 omnichannel assigned to agent 1', async () => {
-			await agent.poHomeOmnichannel.sidenav.openChat(newVisitor.name);
+			await agent.poHomeOmnichannel.navbar.openChat(newVisitor.name);
 		});
 
 		await test.step('expect to be able to edit room info', async () => {
-			await agent.poHomeOmnichannel.roomInfo.btnEditRoomInfo.click();
-			await agent.poHomeOmnichannel.roomInfo.inputTopic.fill('any_topic');
-			await agent.poHomeOmnichannel.roomInfo.btnSaveEditRoom.click();
+			await agent.poHomeOmnichannel.roomInfo.btnEdit.click();
+			await agent.poHomeOmnichannel.editRoomInfo.inputTopic.fill('any_topic');
+			await agent.poHomeOmnichannel.editRoomInfo.btnSave.click();
 
-			await expect(agent.poHomeOmnichannel.roomInfo.dialogRoomInfo).toContainText('any_topic');
+			await expect(agent.poHomeOmnichannel.roomInfo.root).toContainText('any_topic');
 		});
 
 		await test.step('Expect to be able to close an omnichannel to conversation', async () => {
@@ -61,14 +62,14 @@ test.describe('Omnichannel chat history', () => {
 		});
 
 		await test.step('Expect send a message as a visitor again to reopen chat', async () => {
-			await page.goto('/livechat');
+			await poLiveChat.goto();
 			await poLiveChat.openLiveChat();
 			await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor');
 			await poLiveChat.btnSendMessageToOnlineAgent.click();
 		});
 
 		await test.step('Expect to have 1 omnichannel assigned to agent 1', async () => {
-			await agent.poHomeOmnichannel.sidenav.openChat(newVisitor.name);
+			await agent.poHomeOmnichannel.navbar.openChat(newVisitor.name);
 		});
 
 		await test.step('Expect to be able to see conversation history', async () => {

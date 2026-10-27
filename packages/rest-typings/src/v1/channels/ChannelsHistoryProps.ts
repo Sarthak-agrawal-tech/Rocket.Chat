@@ -1,8 +1,6 @@
-import Ajv from 'ajv';
-
 import type { PaginatedRequest } from '../../helpers/PaginatedRequest';
-
-const ajv = new Ajv({ coerceTypes: true });
+import { ajvQuery } from '../Ajv';
+import { paginationQueryProperties } from '../pagination';
 
 export type ChannelsHistoryProps = PaginatedRequest<
 	({ roomId: string } | { roomName: string }) & {
@@ -47,14 +45,7 @@ const channelsHistoryPropsSchema = {
 					enum: ['true', 'false'],
 					nullable: true,
 				},
-				count: {
-					type: 'number',
-					nullable: true,
-				},
-				offset: {
-					type: 'number',
-					nullable: true,
-				},
+				...paginationQueryProperties,
 				sort: {
 					type: 'string',
 					nullable: true,
@@ -95,14 +86,7 @@ const channelsHistoryPropsSchema = {
 					enum: ['true', 'false'],
 					nullable: true,
 				},
-				count: {
-					type: 'number',
-					nullable: true,
-				},
-				offset: {
-					type: 'number',
-					nullable: true,
-				},
+				...paginationQueryProperties,
 				sort: {
 					type: 'string',
 					nullable: true,
@@ -114,4 +98,4 @@ const channelsHistoryPropsSchema = {
 	],
 };
 
-export const isChannelsHistoryProps = ajv.compile<ChannelsHistoryProps>(channelsHistoryPropsSchema);
+export const isChannelsHistoryProps = ajvQuery.compile<ChannelsHistoryProps>(channelsHistoryPropsSchema);

@@ -1,7 +1,13 @@
+import * as UiKit from '@rocket.chat/ui-kit';
+
 import { FuselageSurfaceRenderer, renderTextObject } from './FuselageSurfaceRenderer';
 
 export class BannerSurfaceRenderer extends FuselageSurfaceRenderer {
-	plain_text = renderTextObject;
+	public constructor() {
+		super(UiKit.bannerSurfaceLayoutBlockTypes);
+	}
 
-	mrkdwn = renderTextObject;
+	override plain_text = renderTextObject;
+
+	override mrkdwn = renderTextObject;
 }

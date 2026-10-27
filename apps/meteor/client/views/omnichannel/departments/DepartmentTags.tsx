@@ -1,9 +1,9 @@
-import { Button, Chip, FieldRow, TextInput } from '@rocket.chat/fuselage';
-import type { ComponentProps, FormEvent } from 'react';
+import { Box, Button, Chip, FieldRow, TextInput, Stack } from '@rocket.chat/fuselage';
+import type { ComponentProps, ChangeEvent } from 'react';
 import { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-type DepartmentTagsProps = {
+export type DepartmentTagsProps = {
 	error: string;
 	value: string[];
 	onChange: (tags: string[]) => void;
@@ -29,31 +29,28 @@ const DepartmentTags = ({ error, value: tags, onChange, ...props }: DepartmentTa
 	return (
 		<>
 			<FieldRow>
-				<TextInput
-					data-qa='DepartmentEditTextInput-ConversationClosingTags'
-					error={error}
-					placeholder={t('Enter_a_tag')}
-					value={tagText}
-					onChange={(e: FormEvent<HTMLInputElement>) => setTagText(e.currentTarget.value)}
-					{...props}
-				/>
-				<Button
-					disabled={Boolean(!tagText.trim()) || tags.includes(tagText)}
-					data-qa='DepartmentEditAddButton-ConversationClosingTags'
-					mis={8}
-					title={t('Add')}
-					onClick={handleAddTag}
-				>
-					{t('Add')}
-				</Button>
+				<Stack direction='row' align='center' justify='space-between' grow gap={8}>
+					<TextInput
+						error={error}
+						placeholder={t('Enter_a_tag')}
+						value={tagText}
+						onChange={(e: ChangeEvent<HTMLInputElement>) => setTagText(e.currentTarget.value)}
+						{...props}
+					/>
+					<Button disabled={Boolean(!tagText.trim()) || tags.includes(tagText)} title={t('Add')} onClick={handleAddTag}>
+						{t('Add')}
+					</Button>
+				</Stack>
 			</FieldRow>
 			{tags?.length > 0 && (
 				<FieldRow>
-					{tags.map((tag, i) => (
-						<Chip key={i} onClick={handleTagChipClick(tag)} mie={8}>
-							{tag}
-						</Chip>
-					))}
+					<Box display='flex' alignItems='center' minWidth={0} gap={8} paddingInlineEnd={8}>
+						{tags.map((tag, i) => (
+							<Chip key={i} onClick={handleTagChipClick(tag)}>
+								{tag}
+							</Chip>
+						))}
+					</Box>
 				</FieldRow>
 			)}
 		</>

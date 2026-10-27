@@ -1,5 +1,15 @@
-import { Pagination } from '@rocket.chat/fuselage';
-import { useDebouncedValue, useEffectEvent } from '@rocket.chat/fuselage-hooks';
+import { Pagination, type TableColumnWidth } from '@rocket.chat/fuselage';
+import { useDebouncedValue, useStableCallback } from '@rocket.chat/fuselage-hooks';
+import {
+	GenericTable,
+	GenericTableHeader,
+	GenericTableHeaderCell,
+	GenericTableBody,
+	GenericTableLoadingRow,
+	usePagination,
+	useSort,
+	GenericNoResults,
+} from '@rocket.chat/ui-client';
 import { useEndpoint, useRouter } from '@rocket.chat/ui-contexts';
 import { useQuery, hashKey } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
@@ -7,16 +17,6 @@ import { useTranslation } from 'react-i18next';
 
 import UnitTableRow from './UnitTableRow';
 import FilterByText from '../../../components/FilterByText';
-import GenericNoResults from '../../../components/GenericNoResults/GenericNoResults';
-import {
-	GenericTable,
-	GenericTableHeader,
-	GenericTableHeaderCell,
-	GenericTableBody,
-	GenericTableLoadingRow,
-} from '../../../components/GenericTable';
-import { usePagination } from '../../../components/GenericTable/hooks/usePagination';
-import { useSort } from '../../../components/GenericTable/hooks/useSort';
 import { links } from '../../../lib/links';
 
 const UnitsTable = () => {
@@ -49,7 +49,9 @@ const UnitsTable = () => {
 	const [defaultQuery] = useState(hashKey([query]));
 	const queryHasChanged = defaultQuery !== hashKey([query]);
 
-	const handleAddNew = useEffectEvent(() => router.navigate('/omnichannel/units/new'));
+	const handleAddNew = useStableCallback(() => router.navigate('/omnichannel/units/new'));
+
+	const columns: TableColumnWidth[] = ['auto', 'auto', 'x60'];
 
 	const headers = (
 		<>
@@ -65,7 +67,7 @@ const UnitsTable = () => {
 			>
 				{t('Visibility')}
 			</GenericTableHeaderCell>
-			<GenericTableHeaderCell key='remove' w='x60' />
+			<GenericTableHeaderCell key='remove' />
 		</>
 	);
 
@@ -75,7 +77,7 @@ const UnitsTable = () => {
 				<FilterByText value={filter} onChange={(event) => setFilter(event.target.value)} />
 			)}
 			{isLoading && (
-				<GenericTable aria-busy>
+				<GenericTable columns={columns} aria-busy>
 					<GenericTableHeader>{headers}</GenericTableHeader>
 					<GenericTableBody>
 						<GenericTableLoadingRow cols={3} />
@@ -96,7 +98,7 @@ const UnitsTable = () => {
 			)}
 			{isSuccess && data?.units.length > 0 && (
 				<>
-					<GenericTable aria-busy={isLoading}>
+					<GenericTable columns={columns} aria-label={t('Units')} aria-busy={isLoading}>
 						<GenericTableHeader>{headers}</GenericTableHeader>
 						<GenericTableBody>
 							{data.units.map(({ _id, name, visibility }) => (

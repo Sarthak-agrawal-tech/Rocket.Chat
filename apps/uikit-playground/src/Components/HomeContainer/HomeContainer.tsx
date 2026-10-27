@@ -1,40 +1,32 @@
-import { Box, Label } from '@rocket.chat/fuselage';
-import ProjectsList from './ProjectsList/ProjectsList';
+import { css } from '@rocket.chat/css-in-js';
+import { Box } from '@rocket.chat/fuselage';
 import { useContext } from 'react';
+
+import ProjectsList from './ProjectsList/ProjectsList';
 import { context, createNewProjectAction } from '../../Context';
 import CreateNewScreenButton from '../ScreenThumbnail/CreateNewScreenButton';
-import { css } from '@rocket.chat/css-in-js';
 
 const HomeContainer = () => {
-  const { dispatch } = useContext(context);
-  return (
-    <Box
-      minWidth="100%"
-      display="flex"
-      justifyContent="center"
-      h="var(--content-height)"
-      pbs={'30px'}
-    >
-      <Box
-        width={'max-content'}
-        minWidth={'70%'}
-        display="flex"
-        flexDirection="column"
-        className={css`
-          gap: 30px;
-        `}
-      >
-        <Label fontScale="h1">Projects</Label>
-        <Label fontScale="h3">Start a new project</Label>
-        <CreateNewScreenButton
-          name="plus"
-          onClick={() => dispatch(createNewProjectAction())}
-        />
-        <Label fontScale="h4">Existing Projects</Label>
-        <ProjectsList />
-      </Box>
-    </Box>
-  );
+	const { dispatch } = useContext(context);
+	return (
+		<Box minWidth='100%' display='flex' justifyContent='center' height='var(--content-height)' paddingBlockStart='x32'>
+			<Box
+				width='max-content'
+				minWidth='70%'
+				display='flex'
+				flexDirection='column'
+				className={css`
+					gap: 30px;
+				`}
+			>
+				<Box fontScale='h1'>Projects</Box>
+				<Box fontScale='h3'>Start a new project</Box>
+				<CreateNewScreenButton name='plus' onClick={() => dispatch(createNewProjectAction())} />
+				<Box fontScale='h4'>Existing Projects</Box>
+				<ProjectsList />
+			</Box>
+		</Box>
+	);
 };
 
 export default HomeContainer;

@@ -1,7 +1,7 @@
 import type { IMessage } from '@rocket.chat/core-typings';
 import { GenericModal, imperativeModal } from '@rocket.chat/ui-client';
 
-import { t } from '../../../../app/utils/lib/i18n';
+import { t } from '../../../../lib/i18n';
 import { settings } from '../../settings';
 import { dispatchToastMessage } from '../../toast';
 import { getUser } from '../../user';
@@ -32,15 +32,14 @@ export const processTooLongMessage = async (chat: ChatAPI, { msg }: Pick<IMessag
 				lastModified: Date.now(),
 			});
 
+			chat.composer?.clear();
 			imperativeModal.close();
-			await chat.flows.uploadFiles([file]);
+			await chat.flows.uploadFiles({ files: [file] });
 
 			resolve();
 		};
 
 		const onClose = (): void => {
-			chat.composer?.setText(msg);
-
 			imperativeModal.close();
 			resolve();
 		};

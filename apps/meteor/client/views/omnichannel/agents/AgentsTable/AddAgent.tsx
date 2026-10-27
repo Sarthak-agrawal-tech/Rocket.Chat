@@ -1,9 +1,9 @@
-import { Button, Box, Field, FieldLabel, FieldRow } from '@rocket.chat/fuselage';
-import { useEffectEvent } from '@rocket.chat/fuselage-hooks';
+import { Button, Box, Field, FieldLabel, FieldRow, Stack } from '@rocket.chat/fuselage';
+import { useStableCallback } from '@rocket.chat/fuselage-hooks';
 import { UserAutoComplete } from '@rocket.chat/ui-client';
 import { useToastMessageDispatch } from '@rocket.chat/ui-contexts';
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useEndpointMutation } from '../../../../hooks/useEndpointMutation';
@@ -15,6 +15,8 @@ const AddAgent = () => {
 	const dispatchToastMessage = useToastMessageDispatch();
 	const queryClient = useQueryClient();
 
+	const usernameFieldId = useId();
+
 	const { mutateAsync: saveAction } = useEndpointMutation('POST', '/v1/livechat/users/agent', {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: omnichannelQueryKeys.agents() });
@@ -23,7 +25,7 @@ const AddAgent = () => {
 		},
 	});
 
-	const handleSave = useEffectEvent(async () => {
+	const handleSave = useStableCallback(async () => {
 		await saveAction({ username });
 	});
 
@@ -36,12 +38,14 @@ const AddAgent = () => {
 	return (
 		<Box display='flex' alignItems='center'>
 			<Field>
-				<FieldLabel>{t('Username')}</FieldLabel>
+				<FieldLabel htmlFor={usernameFieldId}>{t('Username')}</FieldLabel>
 				<FieldRow>
-					<UserAutoComplete value={username} onChange={handleChange} />
-					<Button disabled={!username} onClick={handleSave} mis={8} primary>
-						{t('Add_agent')}
-					</Button>
+					<Stack direction='row' align='center' justify='space-between' grow gap={8}>
+						<UserAutoComplete id={usernameFieldId} value={username} onChange={handleChange} />
+						<Button disabled={!username} onClick={handleSave} variant='primary'>
+							{t('Add_agent')}
+						</Button>
+					</Stack>
 				</FieldRow>
 			</Field>
 		</Box>

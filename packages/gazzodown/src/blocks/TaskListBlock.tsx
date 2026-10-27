@@ -1,26 +1,28 @@
 import { CheckBox } from '@rocket.chat/fuselage';
 import type * as MessageParser from '@rocket.chat/message-parser';
-import { ReactElement, useContext } from 'react';
+import { useContext } from 'react';
 
+import NestedListsBlock from './NestedListsBlock';
 import { MarkupInteractionContext } from '../MarkupInteractionContext';
 import InlineElements from '../elements/InlineElements';
 
-type TaskListBlockProps = {
+export type TaskListBlockProps = {
 	tasks: MessageParser.Task[];
 };
 
-const TaksListBlock = ({ tasks }: TaskListBlockProps): ReactElement => {
+const TaskListBlock = ({ tasks }: TaskListBlockProps) => {
 	const { onTaskChecked } = useContext(MarkupInteractionContext);
 
 	return (
 		<ul className='task-list'>
 			{tasks.map((item, index) => (
 				<li key={index}>
-					<CheckBox checked={item.status} onChange={onTaskChecked?.(item)} /> <InlineElements children={item.value} />
+					<CheckBox checked={item.status} onChange={onTaskChecked?.(item)} /> <InlineElements>{item.value}</InlineElements>
+					{item.nested && <NestedListsBlock lists={item.nested} />}
 				</li>
 			))}
 		</ul>
 	);
 };
 
-export default TaksListBlock;
+export default TaskListBlock;

@@ -1,12 +1,5 @@
-import { IconButton, Pagination } from '@rocket.chat/fuselage';
-import { useDebouncedValue, useEffectEvent } from '@rocket.chat/fuselage-hooks';
-import { useTranslation, useEndpoint, useRouter } from '@rocket.chat/ui-contexts';
-import { useQuery, hashKey } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
-
-import { useRemoveCustomField } from './useRemoveCustomField';
-import FilterByText from '../../../components/FilterByText';
-import GenericNoResults from '../../../components/GenericNoResults';
+import { IconButton, Pagination, type TableColumnWidth } from '@rocket.chat/fuselage';
+import { useDebouncedValue, useStableCallback } from '@rocket.chat/fuselage-hooks';
 import {
 	GenericTable,
 	GenericTableHeader,
@@ -15,10 +8,18 @@ import {
 	GenericTableCell,
 	GenericTableBody,
 	GenericTableLoadingTable,
-} from '../../../components/GenericTable';
-import { usePagination } from '../../../components/GenericTable/hooks/usePagination';
-import { useSort } from '../../../components/GenericTable/hooks/useSort';
+	usePagination,
+	useSort,
+	GenericNoResults,
+} from '@rocket.chat/ui-client';
+import { useTranslation, useRouter } from '@rocket.chat/ui-contexts';
+import { hashKey } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+
+import { useRemoveCustomField } from './useRemoveCustomField';
+import FilterByText from '../../../components/FilterByText';
 import { links } from '../../../lib/links';
+import { useCustomFieldsQuery } from '../hooks/useCustomFieldsQuery';
 
 const CustomFieldsTable = () => {
 	const t = useTranslation();
@@ -28,8 +29,8 @@ const CustomFieldsTable = () => {
 	const { current, itemsPerPage, setItemsPerPage: onSetItemsPerPage, setCurrent: onSetCurrent, ...paginationProps } = usePagination();
 	const { sortBy, sortDirection, setSort } = useSort<'_id' | 'label' | 'scope' | 'visibility'>('_id');
 
-	const handleAddNew = useEffectEvent(() => router.navigate('/omnichannel/customfields/new'));
-	const onRowClick = useEffectEvent((id: string) => () => router.navigate(`/omnichannel/customfields/edit/${id}`));
+	const handleAddNew = useStableCallback(() => router.navigate('/omnichannel/customfields/new'));
+	const onRowClick = useStableCallback((id: string) => () => router.navigate(`/omnichannel/customfields/edit/${id}`));
 
 	const handleDelete = useRemoveCustomField();
 
@@ -46,14 +47,12 @@ const CustomFieldsTable = () => {
 		500,
 	);
 
-	const getCustomFields = useEndpoint('GET', '/v1/livechat/custom-fields');
-	const { data, isSuccess, isLoading } = useQuery({
-		queryKey: ['livechat-customFields', query],
-		queryFn: async () => getCustomFields(query),
-	});
+	const { data, isSuccess, isLoading } = useCustomFieldsQuery();
 
 	const [defaultQuery] = useState(hashKey([query]));
 	const queryHasChanged = defaultQuery !== hashKey([query]);
+
+	const columns: TableColumnWidth[] = ['auto', 'auto', 'auto', 'auto', 'x60'];
 
 	const headers = (
 		<>
@@ -75,7 +74,7 @@ const CustomFieldsTable = () => {
 			>
 				{t('Visibility')}
 			</GenericTableHeaderCell>
-			<GenericTableHeaderCell key='remove' w='x60' />
+			<GenericTableHeaderCell key='remove' />
 		</>
 	);
 
@@ -85,7 +84,7 @@ const CustomFieldsTable = () => {
 				<FilterByText value={text} onChange={(event) => setText(event.target.value)} />
 			)}
 			{isLoading && (
-				<GenericTable>
+				<GenericTable columns={columns}>
 					<GenericTableHeader>{headers}</GenericTableHeader>
 					<GenericTableBody>
 						<GenericTableLoadingTable headerCells={5} />
@@ -107,19 +106,19 @@ const CustomFieldsTable = () => {
 
 			{isSuccess && data.customFields.length > 0 && (
 				<>
-					<GenericTable data-qa='GenericTableCustomFieldsInfoBody' aria-busy={isLoading} aria-live='assertive'>
+					<GenericTable columns={columns} aria-label={t('Custom_Fields')} aria-busy={isLoading} aria-live='polite'>
 						<GenericTableHeader>{headers}</GenericTableHeader>
 						<GenericTableBody>
 							{data.customFields.map(({ label, _id, scope, visibility }) => (
-								<GenericTableRow key={_id} tabIndex={0} role='link' onClick={onRowClick(_id)} action qa-user-id={_id}>
-									<GenericTableCell withTruncatedText>{_id}</GenericTableCell>
-									<GenericTableCell withTruncatedText>{label}</GenericTableCell>
-									<GenericTableCell withTruncatedText>{scope === 'visitor' ? t('Visitor') : t('Room')}</GenericTableCell>
-									<GenericTableCell withTruncatedText>{visibility === 'visible' ? t('Visible') : t('Hidden')}</GenericTableCell>
-									<GenericTableCell withTruncatedText>
+								<GenericTableRow key={_id} tabIndex={0} onClick={onRowClick(_id)} action>
+									<GenericTableCell truncate>{_id}</GenericTableCell>
+									<GenericTableCell truncate>{label}</GenericTableCell>
+									<GenericTableCell truncate>{scope === 'visitor' ? t('Visitor') : t('Room')}</GenericTableCell>
+									<GenericTableCell truncate>{visibility === 'visible' ? t('Visible') : t('Hidden')}</GenericTableCell>
+									<GenericTableCell truncate>
 										<IconButton
 											icon='trash'
-											small
+											size='small'
 											title={t('Remove')}
 											onClick={(e) => {
 												e.stopPropagation();

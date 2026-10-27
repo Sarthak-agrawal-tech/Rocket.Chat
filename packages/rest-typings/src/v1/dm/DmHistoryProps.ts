@@ -1,10 +1,6 @@
-import Ajv from 'ajv';
-
 import type { PaginatedRequest } from '../../helpers/PaginatedRequest';
-
-const ajv = new Ajv({
-	coerceTypes: true,
-});
+import { ajvQuery } from '../Ajv';
+import { paginationQueryProperties } from '../pagination';
 
 export type DmHistoryProps = PaginatedRequest<{
 	roomId: string;
@@ -42,12 +38,7 @@ const DmHistoryPropsSchema = {
 			type: 'string',
 			enum: ['true', 'false'],
 		},
-		count: {
-			type: 'number',
-		},
-		offset: {
-			type: 'number',
-		},
+		...paginationQueryProperties,
 		sort: {
 			type: 'string',
 		},
@@ -56,4 +47,4 @@ const DmHistoryPropsSchema = {
 	additionalProperties: false,
 };
 
-export const isDmHistoryProps = ajv.compile<DmHistoryProps>(DmHistoryPropsSchema);
+export const isDmHistoryProps = ajvQuery.compile<DmHistoryProps>(DmHistoryPropsSchema);

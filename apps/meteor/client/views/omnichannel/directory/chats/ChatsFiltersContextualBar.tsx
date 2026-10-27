@@ -1,11 +1,4 @@
 import { Button, ButtonGroup, Field, FieldLabel, FieldRow, InputBox, Select, TextInput } from '@rocket.chat/fuselage';
-import { useEndpoint, usePermission } from '@rocket.chat/ui-contexts';
-import { useQuery } from '@tanstack/react-query';
-import { format } from 'date-fns';
-import { useId } from 'react';
-import { Controller, useForm } from 'react-hook-form';
-import { useTranslation } from 'react-i18next';
-
 import {
 	ContextualbarHeader,
 	ContextualbarIcon,
@@ -14,16 +7,23 @@ import {
 	ContextualbarScrollableContent,
 	ContextualbarFooter,
 	ContextualbarDialog,
-} from '../../../../components/Contextualbar';
+} from '@rocket.chat/ui-client';
+import { usePermission } from '@rocket.chat/ui-contexts';
+import { format } from 'date-fns/format';
+import { useId } from 'react';
+import { Controller, useForm } from 'react-hook-form';
+import { useTranslation } from 'react-i18next';
+
 import { useHasLicenseModule } from '../../../../hooks/useHasLicenseModule';
 import { CurrentChatTags } from '../../additionalForms';
 import AutoCompleteUnits from '../../additionalForms/AutoCompleteUnits';
 import AutoCompleteDepartmentMultiple from '../../components/AutoCompleteDepartmentMultiple';
 import AutoCompleteMultipleAgent from '../../components/AutoCompleteMultipleAgent';
+import { useCustomFieldsQuery } from '../../hooks/useCustomFieldsQuery';
 import type { ChatsFiltersQuery } from '../contexts/ChatsContext';
 import { useChatsContext } from '../contexts/ChatsContext';
 
-type ChatsFiltersContextualBarProps = {
+export type ChatsFiltersContextualBarProps = {
 	onClose: () => void;
 };
 
@@ -31,10 +31,9 @@ const ChatsFiltersContextualBar = ({ onClose }: ChatsFiltersContextualBarProps) 
 	const { t } = useTranslation();
 	const canViewLivechatRooms = usePermission('view-livechat-rooms');
 	const canViewCustomFields = usePermission('view-livechat-room-customfields');
-	const isEnterprise = useHasLicenseModule('livechat-enterprise');
+	const { data: isEnterprise = false } = useHasLicenseModule('livechat-enterprise');
 
-	const allCustomFields = useEndpoint('GET', '/v1/livechat/custom-fields');
-	const { data } = useQuery({ queryKey: ['livechat/custom-fields'], queryFn: async () => allCustomFields() });
+	const { data } = useCustomFieldsQuery();
 	const contactCustomFields = data?.customFields.filter((customField) => customField.scope !== 'visitor');
 
 	const { filtersQuery, setFiltersQuery, resetFiltersQuery, hasAppliedFilters } = useChatsContext();
@@ -101,48 +100,34 @@ const ChatsFiltersContextualBar = ({ onClose }: ChatsFiltersContextualBarProps) 
 				</Field>
 				{canViewLivechatRooms && (
 					<Field>
-						<FieldLabel is='span' id={servedByFieldId}>
-							{t('Served_By')}
-						</FieldLabel>
+						<FieldLabel htmlFor={servedByFieldId}>{t('Served_By')}</FieldLabel>
 						<FieldRow>
 							<Controller
 								name='servedBy'
 								control={control}
 								render={({ field: { value, onChange } }) => (
-									<AutoCompleteMultipleAgent aria-labelledby={servedByFieldId} value={value} onChange={onChange} />
+									<AutoCompleteMultipleAgent id={servedByFieldId} value={value} onChange={onChange} />
 								)}
 							/>
 						</FieldRow>
 					</Field>
 				)}
 				<Field>
-					<FieldLabel is='span' id={statusFieldId}>
-						{t('Status')}
-					</FieldLabel>
+					<FieldLabel htmlFor={statusFieldId}>{t('Status')}</FieldLabel>
 					<Controller
 						name='status'
 						control={control}
-						render={({ field }) => (
-							<Select {...field} aria-labelledby={statusFieldId} options={statusOptions} placeholder={t('Select_an_option')} />
-						)}
+						render={({ field }) => <Select {...field} id={statusFieldId} options={statusOptions} placeholder={t('Select_an_option')} />}
 					/>
 				</Field>
 				<Field>
-					<FieldLabel is='span' id={departmentFieldId}>
-						{t('Department')}
-					</FieldLabel>
+					<FieldLabel htmlFor={departmentFieldId}>{t('Department')}</FieldLabel>
 					<FieldRow>
 						<Controller
 							name='department'
 							control={control}
 							render={({ field: { value, onChange } }) => (
-								<AutoCompleteDepartmentMultiple
-									aria-labelledby={departmentFieldId}
-									showArchived
-									value={value}
-									onChange={onChange}
-									onlyMyDepartments
-								/>
+								<AutoCompleteDepartmentMultiple id={departmentFieldId} showArchived value={value} onChange={onChange} onlyMyDepartments />
 							)}
 						/>
 					</FieldRow>
@@ -161,16 +146,12 @@ const ChatsFiltersContextualBar = ({ onClose }: ChatsFiltersContextualBarProps) 
 				</Field>
 				{isEnterprise && (
 					<Field>
-						<FieldLabel is='span' id={unitsFieldId}>
-							{t('Units')}
-						</FieldLabel>
+						<FieldLabel htmlFor={unitsFieldId}>{t('Units')}</FieldLabel>
 						<FieldRow>
 							<Controller
 								name='units'
 								control={control}
-								render={({ field: { value, onChange } }) => (
-									<AutoCompleteUnits aria-labelledby={unitsFieldId} value={value} onChange={onChange} />
-								)}
+								render={({ field: { value, onChange } }) => <AutoCompleteUnits id={unitsFieldId} value={value} onChange={onChange} />}
 							/>
 						</FieldRow>
 					</Field>
@@ -180,9 +161,7 @@ const ChatsFiltersContextualBar = ({ onClose }: ChatsFiltersContextualBarProps) 
 						if (customField.type === 'select') {
 							return (
 								<Field key={customField._id}>
-									<FieldLabel is='span' id={customField._id}>
-										{customField.label}
-									</FieldLabel>
+									<FieldLabel htmlFor={customField._id}>{customField.label}</FieldLabel>
 									<FieldRow>
 										<Controller
 											name={customField._id}
@@ -190,7 +169,7 @@ const ChatsFiltersContextualBar = ({ onClose }: ChatsFiltersContextualBarProps) 
 											render={({ field }) => (
 												<Select
 													{...field}
-													aria-labelledby={customField._id}
+													id={customField._id}
 													value={field.value as string}
 													options={(customField.options || '').split(',').map((item) => [item, item])}
 												/>
@@ -220,7 +199,7 @@ const ChatsFiltersContextualBar = ({ onClose }: ChatsFiltersContextualBarProps) 
 					<Button disabled={!hasAppliedFilters} onClick={handleResetFilters}>
 						{t('Clear_filters')}
 					</Button>
-					<Button type='submit' form={formId} primary>
+					<Button type='submit' form={formId} variant='primary'>
 						{t('Apply')}
 					</Button>
 				</ButtonGroup>

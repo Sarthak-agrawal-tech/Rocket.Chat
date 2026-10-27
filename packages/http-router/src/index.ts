@@ -1,3 +1,4 @@
 export * from './Router';
-export * from './definition';
+export * from './openapi';
+export type * from './definition';
 export * from './middlewares/honoAdapterForExpress';

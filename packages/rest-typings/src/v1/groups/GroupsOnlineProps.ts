@@ -1,25 +1,16 @@
-import Ajv from 'ajv';
+import { ajvQuery } from '../Ajv';
 
-const ajv = new Ajv({
-	coerceTypes: true,
-});
-
-export type GroupsOnlineProps = { _id?: string; query?: Record<string, any> };
+export type GroupsOnlineProps = { _id: string };
 
 const groupsOnlinePropsSchema = {
 	type: 'object',
 	properties: {
 		_id: {
 			type: 'string',
-			nullable: true,
-		},
-		query: {
-			type: 'string',
-			nullable: true,
 		},
 	},
-	required: [],
+	required: ['_id'],
 	additionalProperties: false,
 };
 
-export const isGroupsOnlineProps = ajv.compile<GroupsOnlineProps>(groupsOnlinePropsSchema);
+export const isGroupsOnlineProps = ajvQuery.compile<GroupsOnlineProps>(groupsOnlinePropsSchema);

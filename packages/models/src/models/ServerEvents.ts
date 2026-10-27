@@ -6,7 +6,7 @@ import type {
 	RocketChatRecordDeleted,
 } from '@rocket.chat/core-typings';
 import { ServerEventType } from '@rocket.chat/core-typings';
-import type { IServerEventsModel } from '@rocket.chat/model-typings';
+import type { InsertionModel, IServerEventsModel } from '@rocket.chat/model-typings';
 import type { Collection, Db, IndexDescription } from 'mongodb';
 
 import { BaseRaw } from './BaseRaw';
@@ -16,7 +16,7 @@ export class ServerEventsRaw extends BaseRaw<IServerEvent> implements IServerEve
 		super(db, 'server_events', trash);
 	}
 
-	protected modelIndexes(): IndexDescription[] {
+	protected override modelIndexes(): IndexDescription[] {
 		return [{ key: { t: 1, ip: 1, ts: -1 } }, { key: { 't': 1, 'u.username': 1, 'ts': -1 } }];
 	}
 
@@ -80,33 +80,36 @@ export class ServerEventsRaw extends BaseRaw<IServerEvent> implements IServerEve
 		});
 	}
 
-	countFailedAttemptsByIp(ip: string): Promise<number> {
-		return this.countDocuments({
-			ip,
-			t: ServerEventType.FAILED_LOGIN_ATTEMPT,
-		});
-	}
-
-	countFailedAttemptsByUsername(username: string): Promise<number> {
-		return this.countDocuments({
-			'u.username': username,
-			't': ServerEventType.FAILED_LOGIN_ATTEMPT,
-		});
-	}
-
 	async createAuditServerEvent<K extends keyof IServerEvents, E extends IServerEvents[K]>(
 		key: K,
 		data: ExtractDataToParams<E>,
 		actor: IAuditServerActor,
 	): Promise<void> {
-		await this.insertOne({
-			t: key,
-			ts: new Date(),
-			actor,
-			data: Object.entries(data).map(([key, value]) => ({ key, value })) as E['data'],
-			// deprecated just to keep backward compatibility
-			ip: '0.0.0.0',
-			...(actor.type === 'user' && { ip: actor?.ip || '0.0.0.0', u: { _id: actor._id, username: actor.username } }),
-		});
+		await this.insertOne(toAuditServerEvent(key, data, actor));
 	}
+
+	async createAuditServerEvents<K extends keyof IServerEvents>(
+		events: Array<{ key: K; data: ExtractDataToParams<IServerEvents[K]>; actor: IAuditServerActor }>,
+	): Promise<void> {
+		await this.insertMany(
+			events.map(({ key, data, actor }) => toAuditServerEvent(key, data, actor)),
+			{ ordered: false },
+		);
+	}
+}
+
+function toAuditServerEvent<K extends keyof IServerEvents, E extends IServerEvents[K]>(
+	key: K,
+	data: ExtractDataToParams<E>,
+	actor: IAuditServerActor,
+): InsertionModel<IServerEvent> {
+	return {
+		t: key,
+		ts: new Date(),
+		actor,
+		data: Object.entries(data).map(([key, value]) => ({ key, value })),
+		// deprecated just to keep backward compatibility
+		ip: '0.0.0.0',
+		...(actor.type === 'user' && { ip: actor?.ip || '0.0.0.0', u: { _id: actor._id, username: actor.username } }),
+	};
 }

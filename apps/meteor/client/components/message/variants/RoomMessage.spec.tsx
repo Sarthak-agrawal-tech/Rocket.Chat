@@ -3,6 +3,7 @@ import { mockAppRoot } from '@rocket.chat/mock-providers';
 import { render, screen } from '@testing-library/react';
 
 import RoomMessage from './RoomMessage';
+import { MessageListContext, messageListContextDefaultValue } from '../list/MessageListContext';
 
 const message: IMessage = {
 	ts: new Date('2021-10-27T00:00:00.000Z'),
@@ -29,8 +30,8 @@ const message: IMessage = {
 	urls: [],
 };
 
-jest.mock('../header/hooks/useMessageRoles', () => ({
-	useMessageRoles: () => [],
+jest.mock('../../../hooks/useUserRolesByScope', () => ({
+	useUserRolesByScope: () => ({ workspaceRoles: [], roomRoles: [] }),
 }));
 jest.mock('../../../lib/utils/fireGlobalEvent', () => ({ fireGlobalEvent: () => undefined }));
 jest.mock('../../../views/room/hooks/useGoToRoom', () => ({ useGoToRoom: () => undefined }));
@@ -43,6 +44,11 @@ jest.mock('../../../views/room/MessageList/hooks/useAutoTranslate', () => ({
 	}),
 }));
 jest.mock('../../../lib/actionLinks', () => undefined);
+jest.mock('../../../lib/RoomManager', () => ({
+	RoomManager: { getStore: jest.fn() },
+	useOpenedRoom: () => undefined,
+	getCollapsibleEventKey: (key: string) => `collapsibleToggled-${key}`,
+}));
 
 it('should show normal message', () => {
 	render(
@@ -105,4 +111,113 @@ it('should show ignored message', () => {
 	expect(screen.getByRole('figure')).toBeInTheDocument();
 	expect(screen.queryByText('message body')).not.toBeInTheDocument();
 	expect(screen.getByRole('button', { name: 'Message_Ignored' })).toBeInTheDocument();
+});
+
+it('should show read receipt', () => {
+	render(
+		<RoomMessage
+			message={message}
+			sequential={false}
+			all={false}
+			mention={false}
+			unread={false}
+			ignoredUser={false}
+			showUserAvatar={true}
+		/>,
+		{
+			wrapper: mockAppRoot()
+				.wrap((children) => (
+					<MessageListContext.Provider value={{ ...messageListContextDefaultValue, readReceipts: { enabled: true, storeUsers: false } }}>
+						{children}
+					</MessageListContext.Provider>
+				))
+				.build(),
+		},
+	);
+
+	expect(screen.getByRole('status', { name: 'Message_viewed' })).toBeInTheDocument();
+});
+
+it('should not show read receipt if receipt is disabled', () => {
+	render(
+		<RoomMessage
+			message={message}
+			sequential={false}
+			all={false}
+			mention={false}
+			unread={false}
+			ignoredUser={false}
+			showUserAvatar={true}
+		/>,
+		{
+			wrapper: mockAppRoot()
+				.wrap((children) => (
+					<MessageListContext.Provider value={{ ...messageListContextDefaultValue, readReceipts: { enabled: false, storeUsers: false } }}>
+						{children}
+					</MessageListContext.Provider>
+				))
+				.build(),
+		},
+	);
+
+	expect(screen.queryByRole('status', { name: 'Message_viewed' })).not.toBeInTheDocument();
+});
+
+it('should show a placeholder instead of failing when the message content cannot be rendered', () => {
+	jest.spyOn(console, 'error').mockImplementation(() => undefined);
+	const malformed = { ...message, actionLinks: [null] } as unknown as IMessage;
+
+	render(
+		<RoomMessage
+			message={malformed}
+			sequential={false}
+			all={false}
+			mention={false}
+			unread={false}
+			ignoredUser={false}
+			showUserAvatar={true}
+		/>,
+		{
+			wrapper: mockAppRoot().build(),
+		},
+	);
+
+	expect(screen.getByRole('figure')).toBeInTheDocument();
+	expect(screen.getByText('Message_could_not_be_displayed')).toBeInTheDocument();
+});
+
+it('should name a sequential message after its placeholder', () => {
+	jest.spyOn(console, 'error').mockImplementation(() => undefined);
+	const malformed = { ...message, actionLinks: [null] } as unknown as IMessage;
+
+	render(
+		<RoomMessage
+			message={malformed}
+			sequential={true}
+			all={false}
+			mention={false}
+			unread={false}
+			ignoredUser={false}
+			showUserAvatar={true}
+		/>,
+		{
+			wrapper: mockAppRoot().build(),
+		},
+	);
+
+	expect(screen.getByRole('listitem', { name: 'Message_could_not_be_displayed' })).toBeInTheDocument();
+});
+
+it('should render the content again once the message is fixed', () => {
+	jest.spyOn(console, 'error').mockImplementation(() => undefined);
+	const malformed = { ...message, actionLinks: [null] } as unknown as IMessage;
+	const props = { sequential: false, all: false, mention: false, unread: false, ignoredUser: false, showUserAvatar: true };
+
+	const { rerender } = render(<RoomMessage message={malformed} {...props} />, { wrapper: mockAppRoot().build() });
+	expect(screen.getByText('Message_could_not_be_displayed')).toBeInTheDocument();
+
+	rerender(<RoomMessage message={{ ...message }} {...props} />);
+
+	expect(screen.queryByText('Message_could_not_be_displayed')).not.toBeInTheDocument();
+	expect(screen.getByText('message body')).toBeInTheDocument();
 });

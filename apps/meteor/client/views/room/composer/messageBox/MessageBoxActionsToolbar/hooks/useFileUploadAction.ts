@@ -1,14 +1,15 @@
 import type { GenericMenuItemProps } from '@rocket.chat/ui-client';
-import { useTranslation, useSetting } from '@rocket.chat/ui-contexts';
+import { useSetting } from '@rocket.chat/ui-contexts';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
-import { useFileInput } from '../../../../../../hooks/useFileInput';
+import { useFileInput } from './useFileInput';
 import { useChat } from '../../../../contexts/ChatContext';
 
 const fileInputProps = { type: 'file', multiple: true };
 
 export const useFileUploadAction = (disabled: boolean): GenericMenuItemProps => {
-	const t = useTranslation();
+	const { t } = useTranslation();
 	const fileUploadEnabled = useSetting('FileUpload_Enabled', true);
 	const fileInputRef = useFileInput(fileInputProps);
 	const chat = useChat();
@@ -23,14 +24,14 @@ export const useFileUploadAction = (disabled: boolean): GenericMenuItemProps => 
 		};
 
 		const handleUploadChange = async () => {
-			const { getMimeType } = await import('../../../../../../../app/utils/lib/mimeTypes');
+			const { getMimeType } = await import('../../../../../../../lib/mimeTypes');
 			const filesToUpload = Array.from(fileInputRef?.current?.files ?? []).map((file) => {
 				Object.defineProperty(file, 'type', {
 					value: getMimeType(file.type, file.name),
 				});
 				return file;
 			});
-			chat?.flows.uploadFiles(filesToUpload, resetFileInput);
+			chat?.flows.uploadFiles({ files: filesToUpload, resetFileInput });
 		};
 
 		fileInputRef.current?.addEventListener('change', handleUploadChange);

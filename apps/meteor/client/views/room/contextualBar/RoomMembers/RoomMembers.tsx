@@ -1,15 +1,9 @@
-import type { IRoom, IUser, IRole } from '@rocket.chat/core-typings';
+import type { IRoom } from '@rocket.chat/core-typings';
 import type { SelectOption } from '@rocket.chat/fuselage';
-import { Box, Icon, TextInput, Select, Throbber, ButtonGroup, Button, Callout } from '@rocket.chat/fuselage';
+import { Box, Icon, TextInput, Select, Throbber, ButtonGroup, Button, Callout, Stack } from '@rocket.chat/fuselage';
 import { useAutoFocus, useDebouncedCallback } from '@rocket.chat/fuselage-hooks';
-import { useTranslation, useSetting } from '@rocket.chat/ui-contexts';
-import type { ReactElement, FormEventHandler, ComponentProps, MouseEvent, ElementType } from 'react';
-import { useMemo } from 'react';
-import { GroupedVirtuoso } from 'react-virtuoso';
-
-import { MembersListDivider } from './MembersListDivider';
-import RoomMembersRow from './RoomMembersRow';
 import {
+	VirtualizedScrollbars,
 	ContextualbarHeader,
 	ContextualbarIcon,
 	ContextualbarTitle,
@@ -19,22 +13,31 @@ import {
 	ContextualbarEmptyContent,
 	ContextualbarSection,
 	ContextualbarDialog,
-} from '../../../../components/Contextualbar';
-import { VirtualizedScrollbars } from '../../../../components/CustomScrollbars';
+} from '@rocket.chat/ui-client';
+import { useSetting } from '@rocket.chat/ui-contexts';
+import type { ChangeEventHandler, ComponentProps, MouseEvent, ElementType } from 'react';
+import { useId, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { GroupedVirtuoso } from 'react-virtuoso';
+
+import { MembersListGroupHeader } from './MembersListGroupHeader';
+import RoomMembersListWrapper from './RoomMembersListWrapper';
+import RoomMembersRow from './RoomMembersRow';
 import InfiniteListAnchor from '../../../../components/InfiniteListAnchor';
+import ResultsLiveRegion from '../../../../components/ResultsLiveRegion';
+import type { RoomMember } from '../../../hooks/useMembersList';
 
-export type RoomMemberUser = Pick<IUser, 'username' | '_id' | 'name' | 'status' | 'freeSwitchExtension'> & { roles?: IRole['_id'][] };
-
-type RoomMembersProps = {
+export type RoomMembersProps = {
 	rid: IRoom['_id'];
 	isTeam?: boolean;
 	isDirect?: boolean;
-	loading: boolean;
+	isPending: boolean;
+	isSuccess: boolean;
 	text: string;
 	type: string;
-	setText: FormEventHandler<HTMLInputElement>;
+	setText: ChangeEventHandler<HTMLInputElement>;
 	setType: (type: 'online' | 'all') => void;
-	members: RoomMemberUser[];
+	members: RoomMember[];
 	total: number;
 	error?: Error;
 	onClickClose: () => void;
@@ -45,10 +48,12 @@ type RoomMembersProps = {
 	renderRow?: ElementType<ComponentProps<typeof RoomMembersRow>>;
 	reload: () => void;
 	isABACRoom?: boolean;
+	isAbacLocked?: boolean;
 };
 
 const RoomMembers = ({
-	loading,
+	isPending,
+	isSuccess,
 	members = [],
 	text,
 	type = 'online',
@@ -67,8 +72,10 @@ const RoomMembers = ({
 	isDirect,
 	reload,
 	isABACRoom = false,
-}: RoomMembersProps): ReactElement => {
-	const t = useTranslation();
+	isAbacLocked = false,
+}: RoomMembersProps) => {
+	const { t } = useTranslation();
+	const membersListId = useId();
 	const inputRef = useAutoFocus<HTMLInputElement>(true);
 	const itemData = useMemo(() => ({ onClickView, rid }), [onClickView, rid]);
 
@@ -91,10 +98,10 @@ const RoomMembers = ({
 	const useRealName = useSetting('UI_Use_Real_Name', false);
 
 	const { counts, titles } = useMemo(() => {
-		const owners: RoomMemberUser[] = [];
-		const leaders: RoomMemberUser[] = [];
-		const moderators: RoomMemberUser[] = [];
-		const normalMembers: RoomMemberUser[] = [];
+		const owners: RoomMember[] = [];
+		const leaders: RoomMember[] = [];
+		const moderators: RoomMember[] = [];
+		const normalMembers: RoomMember[] = [];
 
 		members.forEach((member) => {
 			if (member.roles?.includes('owner')) {
@@ -113,22 +120,22 @@ const RoomMembers = ({
 
 		if (owners.length > 0) {
 			counts.push(owners.length);
-			titles.push(<MembersListDivider title='Owners' count={owners.length} />);
+			titles.push(<MembersListGroupHeader title='Owners' count={owners.length} isFirst={titles.length === 0} />);
 		}
 
 		if (leaders.length > 0) {
 			counts.push(leaders.length);
-			titles.push(<MembersListDivider title='Leaders' count={leaders.length} />);
+			titles.push(<MembersListGroupHeader title='Leaders' count={leaders.length} isFirst={titles.length === 0} />);
 		}
 
 		if (moderators.length > 0) {
 			counts.push(moderators.length);
-			titles.push(<MembersListDivider title='Moderators' count={moderators.length} />);
+			titles.push(<MembersListGroupHeader title='Moderators' count={moderators.length} isFirst={titles.length === 0} />);
 		}
 
 		if (normalMembers.length > 0) {
 			counts.push(normalMembers.length);
-			titles.push(<MembersListDivider title='Members' count={normalMembers.length} />);
+			titles.push(<MembersListGroupHeader title='Members' count={normalMembers.length} isFirst={titles.length === 0} />);
 		}
 
 		return { counts, titles };
@@ -144,80 +151,87 @@ const RoomMembers = ({
 			<ContextualbarSection>
 				<TextInput
 					placeholder={t('Search_by_username')}
+					aria-label={t('Search_by_username')}
+					aria-controls={isSuccess ? membersListId : undefined}
 					value={text}
 					ref={inputRef}
 					onChange={setText}
-					addon={<Icon name='magnifier' size='x20' />}
+					endAddon={<Icon name='magnifier' size='x20' />}
 				/>
-				<Box w='x144' mis={8}>
-					<Select onChange={(value): void => setType(value as 'online' | 'all')} value={type} options={options} />
+				<Box width='x144' marginInlineStart={8}>
+					<Select aria-label={t('Status')} options={options} value={type} onChange={(value): void => setType(value as 'online' | 'all')} />
 				</Box>
 			</ContextualbarSection>
-			<ContextualbarContent p={0} pb={12}>
-				{loading && (
-					<Box pi={24} pb={12}>
+			<ContextualbarContent flush spaced>
+				<ResultsLiveRegion shouldAnnounce={isSuccess} itemCount={members.length} />
+				{isPending && (
+					<Box paddingInline={24} paddingBlock={12}>
 						<Throbber size='x12' />
 					</Box>
 				)}
-
 				{error && (
-					<Box pi={24} pb={12}>
+					<Box paddingInline={24} paddingBlock={12}>
 						<Callout type='danger'>{error.message}</Callout>
 					</Box>
 				)}
-
-				{!loading && members.length <= 0 && <ContextualbarEmptyContent title={t('No_members_found')} />}
-
-				{!loading && members.length > 0 && (
+				{isSuccess && (
 					<>
-						<Box pi={24} pb={12}>
-							<Box is='span' color='hint' fontScale='p2'>
-								{t('Showing_current_of_total', { current: members.length, total })}
+						{members.length > 0 && (
+							<Box paddingInline={24} paddingBlockStart={4} paddingBlockEnd={8}>
+								<Box is='span' color='hint' fontScale='p2'>
+									{t('Showing_current_of_total', { current: members.length, total })}
+								</Box>
 							</Box>
-						</Box>
-
-						<Box w='full' h='full' overflow='hidden' flexShrink={1}>
-							<VirtualizedScrollbars>
-								<GroupedVirtuoso
-									style={{
-										height: '100%',
-										width: '100%',
-									}}
-									overscan={50}
-									groupCounts={counts}
-									groupContent={(index): ReactElement => titles[index]}
-									// eslint-disable-next-line react/no-multi-comp
-									components={{ Footer: () => <InfiniteListAnchor loadMore={loadMoreMembers} /> }}
-									itemContent={(index): ReactElement => (
-										<RowComponent useRealName={useRealName} data={itemData} user={members[index]} index={index} reload={reload} />
-									)}
-								/>
-							</VirtualizedScrollbars>
+						)}
+						<Box id={membersListId} width='full' height='full' overflow='hidden' flexShrink={1}>
+							{members.length <= 0 && <ContextualbarEmptyContent title={t('No_members_found')} />}
+							{members.length > 0 && (
+								<VirtualizedScrollbars>
+									<GroupedVirtuoso
+										style={{
+											height: '100%',
+											width: '100%',
+										}}
+										overscan={50}
+										groupCounts={counts}
+										groupContent={(index) => titles[index]}
+										components={{
+											Footer: () => <InfiniteListAnchor loadMore={loadMoreMembers} />,
+											List: RoomMembersListWrapper,
+										}}
+										itemContent={(index) => (
+											<RowComponent useRealName={useRealName} data={itemData} user={members[index]} index={index} reload={reload} />
+										)}
+									/>
+								</VirtualizedScrollbars>
+							)}
 						</Box>
 					</>
 				)}
 			</ContextualbarContent>
 			{!isDirect && (onClickInvite || onClickAdd) && (
 				<ContextualbarFooter>
-					<ButtonGroup stretch>
-						{onClickInvite && (
-							<Button
-								icon='link'
-								onClick={onClickInvite}
-								width='50%'
-								disabled={isABACRoom}
-								title={isABACRoom ? t('Not_available_for_ABAC_enabled_rooms') : undefined}
-								aria-label={t('Invite_Link')}
-							>
-								{t('Invite_Link')}
-							</Button>
-						)}
-						{onClickAdd && (
-							<Button icon='user-plus' onClick={onClickAdd} width='50%' primary>
-								{t('Add')}
-							</Button>
-						)}
-					</ButtonGroup>
+					<Stack gap={16}>
+						{isAbacLocked && <Callout type='danger'>{t('ABAC_Cannot_add_members_to_locked_room')}</Callout>}
+						<ButtonGroup stretch='equal'>
+							{onClickInvite && (
+								<Button
+									icon='link'
+									onClick={onClickInvite}
+									disabled={isABACRoom || isAbacLocked}
+									title={isABACRoom ? t('Not_available_for_ABAC_enabled_rooms') : undefined}
+									aria-label={t('Invite_Link')}
+								>
+									{t('Invite_Link')}
+								</Button>
+							)}
+							{onClickAdd && (
+								<Button icon='user-plus' onClick={onClickAdd} variant='primary' disabled={isAbacLocked}>
+									{t('Add')}
+								</Button>
+							)}
+						</ButtonGroup>
+					</Stack>
 				</ContextualbarFooter>
 			)}
 		</ContextualbarDialog>

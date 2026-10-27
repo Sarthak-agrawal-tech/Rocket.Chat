@@ -1,3 +1,4 @@
+import { FocusScope } from '@react-aria/focus';
 import {
 	Modal,
 	AnimatedVisibility,
@@ -12,13 +13,12 @@ import {
 	ModalFooterControllers,
 } from '@rocket.chat/fuselage';
 import { UiKitComponent, UiKitModal, modalParser } from '@rocket.chat/fuselage-ui-kit';
-import * as UiKit from '@rocket.chat/ui-kit';
-import type { FormEvent, FormEventHandler, ReactElement } from 'react';
+import type * as UiKit from '@rocket.chat/ui-kit';
+import type { FormEvent, FormEventHandler } from 'react';
 import { useId, useCallback, useEffect, useMemo, useRef } from 'react';
-import { FocusScope } from 'react-aria';
 
 import { getButtonStyle } from './getButtonStyle';
-import { getURL } from '../../../../app/utils/client/getURL';
+import { getURL } from '../../../lib/getURL';
 
 const focusableElementsString = `
 	a[href]:not([tabindex="-1"]),
@@ -64,7 +64,7 @@ const KeyboardCode = new Map<string, number>([
 	['TAB', 9],
 ]);
 
-const ModalBlock = ({ view, errors, onSubmit, onClose, onCancel }: ModalBlockParams): ReactElement => {
+const ModalBlock = ({ view, errors, onSubmit, onClose, onCancel }: ModalBlockParams) => {
 	const id = `modal_id_${useId()}`;
 	const ref = useRef<HTMLElement>(null);
 
@@ -113,7 +113,7 @@ const ModalBlock = ({ view, errors, onSubmit, onClose, onCancel }: ModalBlockPar
 					if (!ref.current) {
 						return;
 					}
-					const elements = Array.from(ref.current.querySelectorAll(focusableElementsString)) as HTMLElement[];
+					const elements = Array.from(ref.current.querySelectorAll<HTMLElement>(focusableElementsString));
 					const [first] = elements;
 					const last = elements.pop();
 
@@ -161,7 +161,7 @@ const ModalBlock = ({ view, errors, onSubmit, onClose, onCancel }: ModalBlockPar
 			if (!container.contains(e.target as HTMLElement)) {
 				return;
 			}
-			return handleKeyDown(e as KeyboardEvent);
+			return handleKeyDown(e);
 		};
 
 		document.addEventListener('keydown', ignoreIfNotContains);
@@ -178,7 +178,7 @@ const ModalBlock = ({ view, errors, onSubmit, onClose, onCancel }: ModalBlockPar
 				<Modal aria-labelledby={`${id}-title`} open id={id} ref={ref}>
 					<ModalHeader>
 						{view.showIcon ? <ModalThumb url={getURL(`/api/apps/${view.appId}/icon`)} /> : null}
-						<ModalTitle id={`${id}-title`}>{modalParser.text(view.title, UiKit.BlockContext.NONE, 0)}</ModalTitle>
+						<ModalTitle id={`${id}-title`}>{modalParser.renderTextObject(view.title, 0)}</ModalTitle>
 						<ModalClose tabIndex={-1} onClick={onClose} />
 					</ModalHeader>
 					<ModalContent>
@@ -189,13 +189,13 @@ const ModalBlock = ({ view, errors, onSubmit, onClose, onCancel }: ModalBlockPar
 					<ModalFooter>
 						<ModalFooterControllers>
 							{view.close && (
-								<Button danger={view.close.style === 'danger'} onClick={onCancel}>
-									{modalParser.text(view.close.text, UiKit.BlockContext.NONE, 0)}
+								<Button variant={view.close.style === 'danger' ? 'danger' : undefined} onClick={onCancel}>
+									{modalParser.renderTextObject(view.close.text, 0)}
 								</Button>
 							)}
 							{view.submit && (
 								<Button {...getButtonStyle(view.submit)} onClick={onSubmit}>
-									{modalParser.text(view.submit.text, UiKit.BlockContext.NONE, 1)}
+									{modalParser.renderTextObject(view.submit.text, 1)}
 								</Button>
 							)}
 						</ModalFooterControllers>

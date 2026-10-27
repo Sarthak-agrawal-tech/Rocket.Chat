@@ -63,14 +63,14 @@ const CannedResponseForm = () => {
 				)}
 			</Field>
 			<Field>
-				<FieldLabel htmlFor={messageField} w='full' display='flex' flexDirection='row' justifyContent='space-between'>
-					{t('Message')}
+				<FieldRow>
+					<FieldLabel htmlFor={messageField}>{t('Message')}</FieldLabel>
 					{text !== '' && (
 						<Box className={clickable} color='info' onClick={() => setPreview(!preview)}>
 							{preview ? t('Editor') : t('Preview')}
 						</Box>
 					)}
-				</FieldLabel>
+				</FieldRow>
 				{preview ? (
 					<CannedResponsesComposerPreview text={text} />
 				) : (
@@ -99,11 +99,7 @@ const CannedResponseForm = () => {
 				)}
 			</Field>
 			<Field>
-				<Controller
-					name='tags'
-					control={control}
-					render={({ field: { value, onChange } }) => <Tags handler={onChange} tags={value as unknown as string[]} />} // FIXME: fix types
-				/>
+				<Controller name='tags' control={control} render={({ field: { value, onChange } }) => <Tags handler={onChange} tags={value} />} />
 			</Field>
 			{(hasManagerPermission || hasMonitorPermission) && (
 				<>

@@ -11,20 +11,18 @@ test.describe.serial('sidebar-administration-menu', () => {
 	test.beforeEach(async ({ page }) => {
 		poHomeDiscussion = new HomeDiscussion(page);
 
-		await page.goto('/home');
+		await poHomeDiscussion.goto();
 	});
 
 	test.describe('admin user', () => {
+		test.skip(!IS_EE, 'Enterprise only');
 		test('should open workspace page', async ({ page }) => {
-			test.skip(!IS_EE, 'Enterprise only');
-			await poHomeDiscussion.sidenav.openAdministrationByLabel('Workspace');
-
+			await poHomeDiscussion.navbar.openManageMenuItem('Workspace');
 			await expect(page).toHaveURL('admin/info');
 		});
 
 		test('should open omnichannel page', async ({ page }) => {
-			await poHomeDiscussion.sidenav.openAdministrationByLabel('Omnichannel');
-
+			await poHomeDiscussion.navbar.openManageMenuItem('Omnichannel');
 			await expect(page).toHaveURL('omnichannel/current');
 		});
 	});
@@ -32,8 +30,8 @@ test.describe.serial('sidebar-administration-menu', () => {
 	test.describe('regular user', () => {
 		test.use({ storageState: Users.user1.state });
 
-		test('expect to not render administration menu when no permission', async ({ page }) => {
-			await expect(page.locator('role=button[name="Administration"]')).not.toBeVisible();
+		test('expect to not render administration menu when no permission', async () => {
+			await expect(poHomeDiscussion.navbar.btnManageWorkspace).not.toBeVisible();
 		});
 	});
 });

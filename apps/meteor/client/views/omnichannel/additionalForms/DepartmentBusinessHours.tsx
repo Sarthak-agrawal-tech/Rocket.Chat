@@ -5,9 +5,11 @@ import { useTranslation } from 'react-i18next';
 
 import { useHasLicenseModule } from '../../../hooks/useHasLicenseModule';
 
-export const DepartmentBusinessHours = ({ bhId }: { bhId: string | undefined }) => {
+export type DepartmentBusinessHoursProps = { bhId: string | undefined };
+
+export const DepartmentBusinessHours = ({ bhId }: DepartmentBusinessHoursProps) => {
 	const { t } = useTranslation();
-	const hasLicense = useHasLicenseModule('livechat-enterprise');
+	const { data: hasLicense = false } = useHasLicenseModule('livechat-enterprise');
 	const getBusinessHour = useEndpoint('GET', '/v1/livechat/business-hour');
 	const { data } = useQuery({
 		queryKey: ['/v1/livechat/business-hour', bhId],

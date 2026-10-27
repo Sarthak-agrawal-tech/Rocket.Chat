@@ -1,5 +1,22 @@
-export { default as MediaCallProvider } from './v2/MediaCallProvider';
+export { default as MediaCallProvider } from './providers/MediaCallProvider';
 
-export * from './hooks';
+export {
+	MediaCallInstanceContext,
+	useMediaCallView,
+	useWidgetExternalControls,
+	usePeekMediaSessionState,
+	usePeekMediaSessionPeerInfo,
+	usePeekMediaSessionFeatures,
+	usePeekMediaSessionHidden,
+} from './context';
+export type { PeekMediaSessionStateReturn } from './context';
+export type { PeerInfo } from './context';
+export { useMediaCallAction, useMediaCallOpenRoomTracker } from './hooks';
 
-export { MediaCallContext, useMediaCallExternalContext as useMediaCallContext, useMediaCallAction, type PeerInfo } from './v2';
+export { CallHistoryContextualBar, MediaCallRoomActivity, InlineMediaCallWidget, getCallHistoryMenuItems } from './views';
+export type { CallHistoryData } from './views';
+export * from './definitions/callHistoryContacts';
+
+export { getHistoryMessagePayload } from './ui-kit/getHistoryMessagePayload';
+
+export * from './views/MediaCallHistoryTable';

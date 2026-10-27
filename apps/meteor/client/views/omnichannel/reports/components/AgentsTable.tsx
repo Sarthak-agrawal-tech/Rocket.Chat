@@ -1,7 +1,4 @@
-import { useEffectEvent } from '@rocket.chat/fuselage-hooks';
-import { memo } from 'react';
-import { useTranslation } from 'react-i18next';
-
+import { useStableCallback } from '@rocket.chat/fuselage-hooks';
 import {
 	GenericTable,
 	GenericTableBody,
@@ -9,9 +6,11 @@ import {
 	GenericTableHeader,
 	GenericTableHeaderCell,
 	GenericTableRow,
-} from '../../../../components/GenericTable';
+} from '@rocket.chat/ui-client';
+import { memo } from 'react';
+import { useTranslation } from 'react-i18next';
 
-type AgentsTableProps = {
+export type AgentsTableProps = {
 	data: {
 		label: string;
 		value: number;
@@ -24,7 +23,7 @@ type AgentsTableProps = {
 export const AgentsTable = memo(({ data, sortBy, sortDirection, setSort }: AgentsTableProps) => {
 	const { t } = useTranslation();
 
-	const onHeaderClick = useEffectEvent((id: 'name' | 'total') => {
+	const onHeaderClick = useStableCallback((id: 'name' | 'total') => {
 		setSort(id, sortDirection === 'asc' ? 'desc' : 'asc');
 	});
 
@@ -41,7 +40,7 @@ export const AgentsTable = memo(({ data, sortBy, sortDirection, setSort }: Agent
 			<GenericTableBody>
 				{data.map((item) => (
 					<GenericTableRow key={`${item.label}_${item.value}`}>
-						<GenericTableCell withTruncatedText>{item.label}</GenericTableCell>
+						<GenericTableCell truncate>{item.label}</GenericTableCell>
 						<GenericTableCell>{item.value}</GenericTableCell>
 					</GenericTableRow>
 				))}

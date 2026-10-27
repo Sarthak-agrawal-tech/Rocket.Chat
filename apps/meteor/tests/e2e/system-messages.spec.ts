@@ -16,7 +16,8 @@ const userData = {
 	password: faker.internet.password(),
 };
 
-const findSysMes = (page: Page, id: string): Locator => page.locator(`[data-qa="system-message"][data-system-message-type="${id}"]`);
+const findSysMes = (page: Page, id: string): Locator =>
+	page.locator(`[role="listitem"][aria-roledescription="system message"][data-system-message-type="${id}"]`);
 
 // There currently are over 33 system messages. Testing only a couple due to test being too slow right now.
 // Ideally, we should test all.
@@ -42,13 +43,13 @@ test.describe.serial('System Messages', () => {
 
 	test.beforeEach(async ({ page }) => {
 		poHomeChannel = new HomeChannel(page);
-		await page.goto('/home');
+		await poHomeChannel.goto();
 
 		if (!group?.name) {
 			return;
 		}
 
-		await poHomeChannel.sidenav.openChat(group.name);
+		await poHomeChannel.navbar.openChat(group.name);
 	});
 
 	test.afterAll(async ({ api }) => {

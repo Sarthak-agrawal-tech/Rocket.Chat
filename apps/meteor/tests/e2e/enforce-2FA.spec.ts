@@ -1,6 +1,6 @@
 import { IS_EE } from './config/constants';
 import { Users } from './fixtures/userStates';
-import { HomeChannel, AccountProfile } from './page-objects';
+import { HomeChannel, AccountSecurity } from './page-objects';
 import { createCustomRole, deleteCustomRole } from './utils/custom-role';
 import { setSettingValueById } from './utils/setSettingValueById';
 import { test, expect } from './utils/test';
@@ -11,11 +11,11 @@ test.describe('enforce two factor authentication', () => {
 	test.skip(!IS_EE, 'Enterprise Only');
 
 	let poHomeChannel: HomeChannel;
-	let poAccountProfile: AccountProfile;
+	let poAccountSecurity: AccountSecurity;
 	let customRoleId = '';
 	test.beforeEach(async ({ page }) => {
 		poHomeChannel = new HomeChannel(page);
-		poAccountProfile = new AccountProfile(page);
+		poAccountSecurity = new AccountSecurity(page);
 	});
 
 	test.beforeAll(async ({ api }) => {
@@ -48,20 +48,20 @@ test.describe('enforce two factor authentication', () => {
 		expect(enableEmail2FA.status()).toBe(200);
 	});
 
-	test('should redirect to 2FA setup page and setup email 2FA', async ({ page }) => {
-		await page.goto('/home');
-		await poAccountProfile.required2faModalSetUpButton.click();
-		await expect(poHomeChannel.sidenav.sidebarHomeAction).not.toBeVisible();
+	test('should redirect to 2FA setup page and setup email 2FA', async () => {
+		await poHomeChannel.gotoExpecting(poAccountSecurity.required2faModalSetUpButton);
+		await poAccountSecurity.required2faModalSetUpButton.click();
+		await expect(poHomeChannel.navbar.btnHome).not.toBeVisible();
 
-		await expect(poAccountProfile.securityHeader).toBeVisible();
+		await expect(poAccountSecurity.securityHeader).toBeVisible();
 
-		await expect(poAccountProfile.security2FASection).toHaveAttribute('aria-expanded', 'true');
-		await expect(poAccountProfile.email2FASwitch).toBeVisible();
-		await poAccountProfile.email2FASwitch.click();
+		await expect(poAccountSecurity.security2FASection).toHaveAttribute('aria-expanded', 'true');
+		await expect(poAccountSecurity.email2FASwitch).toBeVisible();
+		await poAccountSecurity.email2FASwitch.click();
 
 		await poHomeChannel.toastMessage.waitForDisplay();
-		await expect(poHomeChannel.sidenav.sidebarHomeAction).toBeVisible();
-		await expect(poAccountProfile.securityHeader).not.toBeVisible();
+		await expect(poHomeChannel.navbar.btnHome).toBeVisible();
+		await expect(poAccountSecurity.securityHeader).not.toBeVisible();
 	});
 
 	test.describe('should still redirect to 2FA setup page when email 2FA is disabled', () => {
@@ -73,16 +73,16 @@ test.describe('enforce two factor authentication', () => {
 			await setSettingValueById(api, 'Accounts_TwoFactorAuthentication_By_Email_Enabled', true);
 		});
 
-		test('should redirect to 2FA setup page and show totp 2FA setup', async ({ page }) => {
-			await page.goto('/home');
-			await poAccountProfile.required2faModalSetUpButton.click();
-			await expect(poHomeChannel.sidenav.sidebarHomeAction).not.toBeVisible();
+		test('should redirect to 2FA setup page and show totp 2FA setup', async () => {
+			await poHomeChannel.gotoExpecting(poAccountSecurity.required2faModalSetUpButton);
+			await poAccountSecurity.required2faModalSetUpButton.click();
+			await expect(poHomeChannel.navbar.btnHome).not.toBeVisible();
 
-			await expect(poAccountProfile.securityHeader).toBeVisible();
+			await expect(poAccountSecurity.securityHeader).toBeVisible();
 
-			await expect(poAccountProfile.security2FASection).toHaveAttribute('aria-expanded', 'true');
-			await expect(poAccountProfile.totp2FASwitch).toBeVisible();
-			await expect(poAccountProfile.email2FASwitch).not.toBeVisible();
+			await expect(poAccountSecurity.security2FASection).toHaveAttribute('aria-expanded', 'true');
+			await expect(poAccountSecurity.totp2FASwitch).toBeVisible();
+			await expect(poAccountSecurity.email2FASwitch).not.toBeVisible();
 		});
 	});
 
@@ -97,10 +97,10 @@ test.describe('enforce two factor authentication', () => {
 			await setSettingValueById(api, 'Accounts_TwoFactorAuthentication_By_TOTP_Enabled', true);
 		});
 
-		test('should not redirect to 2FA setup page', async ({ page }) => {
-			await page.goto('/home');
-			await expect(poHomeChannel.sidenav.sidebarHomeAction).toBeVisible();
-			await expect(poAccountProfile.securityHeader).not.toBeVisible();
+		test('should not redirect to 2FA setup page', async () => {
+			await poHomeChannel.goto();
+			await expect(poHomeChannel.navbar.btnHome).toBeVisible();
+			await expect(poAccountSecurity.securityHeader).not.toBeVisible();
 		});
 	});
 });

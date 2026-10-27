@@ -23,6 +23,10 @@ export const CoreModules = [
 	'contact-id-verification',
 	'teams-voip',
 	'outbound-messaging',
+	'abac',
+	'fips',
+	'experimental-enterprise-features',
+	'video-conference-native',
 ] as const;
 
 export type InternalModuleName = (typeof CoreModules)[number];

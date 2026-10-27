@@ -1,7 +1,7 @@
 import type { Locator, Page } from '@playwright/test';
 
-import { OmnichannelCloseChatModal } from './omnichannel-close-chat-modal';
-import { OmnichannelOnHoldModal } from './omnichannel-on-hold-modal';
+import { MenuOptions } from './menu';
+import { OmnichannelCloseChatModal, OmnichannelOnHoldModal } from './modals';
 
 export abstract class Toolbar {
 	constructor(protected root: Locator) {}
@@ -12,16 +12,15 @@ export abstract class Toolbar {
 }
 
 export class RoomToolbar extends Toolbar {
+	readonly menu: MenuOptions;
+
 	constructor(page: Page) {
-		super(page.getByRole('toolbar', { name: 'Primary Room actions' }));
+		super(page.getByRole('toolbar', { name: 'Primary room actions' }));
+		this.menu = new MenuOptions(page);
 	}
 
 	get btnRoomInfo() {
-		return this.root.getByRole('button', { name: 'Room Information' });
-	}
-
-	private get btnTeamInfo() {
-		return this.root.getByRole('button', { name: 'Team info' });
+		return this.root.getByRole('button', { name: 'Room information' });
 	}
 
 	get btnMembers() {
@@ -37,15 +36,11 @@ export class RoomToolbar extends Toolbar {
 	}
 
 	get btnUserInfo(): Locator {
-		return this.root.getByRole('button', { name: 'User Info' });
+		return this.root.getByRole('button', { name: 'User info' });
 	}
 
 	get btnDiscussion(): Locator {
 		return this.root.getByRole('button', { name: 'Discussions' });
-	}
-
-	private get btnTeamChannels(): Locator {
-		return this.root.getByRole('button', { name: 'Team Channels' });
 	}
 
 	get btnThreads(): Locator {
@@ -60,32 +55,97 @@ export class RoomToolbar extends Toolbar {
 		return this.root.getByRole('button', { name: 'Options' });
 	}
 
+	get btnSearchMessages(): Locator {
+		return this.root.getByRole('button', { name: 'Search messages' });
+	}
+
 	get btnDisableE2EEncryption(): Locator {
 		return this.root.getByRole('button', { name: 'Disable E2E encryption' });
 	}
 
+	get menuItemExportMessages(): Locator {
+		return this.menu.getMenuItem('Export messages');
+	}
+
 	get menuItemMentions(): Locator {
-		return this.root.getByRole('menuitem', { name: 'Mentions' });
+		return this.menu.getMenuItem('Mentions');
 	}
 
 	get menuItemStarredMessages(): Locator {
-		return this.root.getByRole('menuitem', { name: 'Starred Messages' });
+		return this.menu.getMenuItem('Starred messages');
 	}
 
 	get menuItemPinnedMessages(): Locator {
-		return this.root.getByRole('menuitem', { name: 'Pinned Messages' });
+		return this.menu.getMenuItem('Pinned messages');
 	}
 
 	get menuItemPruneMessages(): Locator {
-		return this.root.getByRole('menuitem', { name: 'Prune Messages' });
+		return this.menu.getMenuItem('Prune messages');
+	}
+
+	get menuItemAutoTranslate(): Locator {
+		return this.menu.getMenuItem('Auto-Translate');
+	}
+
+	get menuItemNotificationsPreferences(): Locator {
+		return this.menu.getMenuItem('Notifications preferences');
+	}
+
+	get menuItemDisableE2EEncryption(): Locator {
+		return this.menu.getMenuItem('Disable E2E encryption');
+	}
+
+	get menuItemEnableE2EEncryption(): Locator {
+		return this.menu.getMenuItem('Enable E2E encryption');
+	}
+
+	get menuItemFiles(): Locator {
+		return this.menu.getMenuItem('Files');
+	}
+
+	/** The room's conference-call history. */
+	get menuItemCalls(): Locator {
+		return this.menu.getMenuItem('Calls');
+	}
+
+	get btnCalls(): Locator {
+		return this.root.getByRole('button', { name: 'Calls', exact: true });
+	}
+
+	/**
+	 * Opens the room's call history, wherever the toolbar happens to be keeping it: the action is ordered last,
+	 * so it is normally behind *Options*, but a room with few actions shows it outright.
+	 */
+	async openCalls(): Promise<void> {
+		if (await this.btnCalls.isVisible()) {
+			await this.btnCalls.click();
+			return;
+		}
+
+		await this.openMoreOptions();
+		await this.menuItemCalls.click();
+	}
+
+	get btnABACAttributes(): Locator {
+		return this.root.getByRole('button', { name: 'Attribute-based access control', exact: true });
+	}
+
+	get menuItemABACAttributes(): Locator {
+		return this.menu.getMenuItem('Attribute-based access control');
+	}
+
+	async openABACAttributes(): Promise<void> {
+		if (await this.btnABACAttributes.isVisible()) {
+			await this.btnABACAttributes.click();
+			return;
+		}
+
+		await this.openMoreOptions();
+		await this.menuItemABACAttributes.click();
 	}
 
 	async openRoomInfo() {
 		await this.btnRoomInfo.click();
-	}
-
-	async openTeamInfo() {
-		await this.btnTeamInfo.click();
 	}
 
 	async openMembersTab() {
@@ -96,22 +156,50 @@ export class RoomToolbar extends Toolbar {
 		await this.btnUserInfo.click();
 	}
 
+	async openMoreOptions() {
+		await this.btnMoreOptions.click();
+	}
+
+	private get btnTeamChannels(): Locator {
+		return this.root.getByRole('button', { name: 'Team channels' });
+	}
+
 	async openTeamChannels() {
 		await this.btnTeamChannels.click();
 	}
 
-	async openMoreOptions() {
-		await this.btnMoreOptions.click();
+	async waitFor() {
+		await this.root.waitFor({ state: 'visible' });
 	}
 }
 
+export class TeamToolbar extends RoomToolbar {
+	private get menuItemTeamMembers() {
+		return this.menu.getMenuItem('Teams members');
+	}
+
+	private get btnTeamInfo() {
+		return this.root.getByRole('button', { name: 'Team info' });
+	}
+
+	async openTeamMembers() {
+		await this.menuItemTeamMembers.click();
+	}
+
+	async openTeamInfo() {
+		await this.btnTeamInfo.click();
+	}
+}
+
+export class EncryptedRoomToolbar extends RoomToolbar {}
+
 export class OmnichannelRoomToolbar extends RoomToolbar {
 	private get btnContactInfo(): Locator {
-		return this.root.getByRole('button', { name: 'Contact Information' });
+		return this.root.getByRole('button', { name: 'Contact information' });
 	}
 
 	private get btnCannedResponses(): Locator {
-		return this.root.getByRole('button', { name: 'Canned Responses' });
+		return this.root.getByRole('button', { name: 'Canned responses' });
 	}
 
 	async openContactInfo() {
@@ -129,7 +217,7 @@ export class OmnichannelQuickActionsRoomToolbar extends Toolbar {
 	private onHoldModal: OmnichannelOnHoldModal;
 
 	constructor(page: Page) {
-		super(page.getByRole('toolbar', { name: 'Omnichannel Quick Actions' }));
+		super(page.getByRole('toolbar', { name: 'Omnichannel quick actions' }));
 		this.closeChatModal = new OmnichannelCloseChatModal(page);
 		this.onHoldModal = new OmnichannelOnHoldModal(page);
 	}

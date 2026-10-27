@@ -1,11 +1,8 @@
 import type { IRoom, IUser } from '@rocket.chat/core-typings';
-import Ajv from 'ajv';
 
+import { ajv, ajvQuery } from './Ajv';
+import { paginationQueryProperties } from './pagination';
 import type { PaginatedRequest } from '../helpers/PaginatedRequest';
-
-const ajv = new Ajv({
-	coerceTypes: true,
-});
 
 type ShieldSvg = {
 	type?: string;
@@ -42,7 +39,19 @@ const ShieldSvgSchema = {
 
 export const isShieldSvgProps = ajv.compile<ShieldSvg>(ShieldSvgSchema);
 
-type Spotlight = { query: string };
+type SpotlightType = {
+	users?: boolean;
+	mentions?: boolean;
+	rooms?: boolean;
+	includeFederatedRooms?: boolean;
+};
+
+type Spotlight = {
+	query: string;
+	usernames?: string;
+	type?: string;
+	rid?: string;
+};
 
 const SpotlightSchema = {
 	type: 'object',
@@ -50,12 +59,39 @@ const SpotlightSchema = {
 		query: {
 			type: 'string',
 		},
+		usernames: {
+			type: 'string',
+			nullable: true,
+		},
+		type: {
+			type: 'string',
+			nullable: true,
+		},
+		rid: {
+			type: 'string',
+			nullable: true,
+		},
 	},
 	required: ['query'],
 	additionalProperties: false,
 };
 
-export const isSpotlightProps = ajv.compile<Spotlight>(SpotlightSchema);
+export const isSpotlightProps = ajvQuery.compile<Spotlight>(SpotlightSchema);
+
+const parseSpotlightUsernames = (usernames?: string): string[] | undefined =>
+	usernames ? usernames.split(',').filter(Boolean) : undefined;
+const parseSpotlightType = (raw?: string): SpotlightType | undefined => {
+	if (!raw) return undefined;
+	try {
+		const parsed = JSON.parse(raw) as SpotlightType;
+		return parsed && typeof parsed === 'object' ? parsed : undefined;
+	} catch {
+		return undefined;
+	}
+};
+
+export { parseSpotlightUsernames, parseSpotlightType };
+export type { SpotlightType };
 
 type Directory = PaginatedRequest<{
 	text: string;
@@ -78,19 +114,8 @@ const DirectorySchema = {
 			type: 'string',
 			nullable: true,
 		},
-		count: {
-			type: 'number',
-			nullable: true,
-		},
-		offset: {
-			type: 'number',
-			nullable: true,
-		},
+		...paginationQueryProperties,
 		sort: {
-			type: 'string',
-			nullable: true,
-		},
-		query: {
 			type: 'string',
 			nullable: true,
 		},
@@ -99,7 +124,7 @@ const DirectorySchema = {
 	additionalProperties: false,
 };
 
-export const isDirectoryProps = ajv.compile<Directory>(DirectorySchema);
+export const isDirectoryProps = ajvQuery.compile<Directory>(DirectorySchema);
 
 type MethodCall = { method: string; params: unknown[]; id: string; msg: 'string' };
 
@@ -181,16 +206,6 @@ const FingerprintSchema = {
 export const isFingerprintProps = ajv.compile<Fingerprint>(FingerprintSchema);
 
 export type MiscEndpoints = {
-	'/v1/stdout.queue': {
-		GET: () => {
-			queue: {
-				id: string;
-				string: string;
-				ts: Date;
-			}[];
-		};
-	};
-
 	'/v1/shield.svg': {
 		GET: (params: ShieldSvg) => {
 			svg: string;
@@ -199,15 +214,16 @@ export type MiscEndpoints = {
 
 	'/v1/spotlight': {
 		GET: (params: Spotlight) => {
-			users: Pick<Required<IUser>, 'name' | 'status' | 'statusText' | 'avatarETag' | '_id' | 'username'>[];
-			rooms: Pick<Required<IRoom>, 't' | 'name' | 'lastMessage' | '_id'>[];
+			users: (Pick<Required<IUser>, 'name' | '_id' | 'username'> &
+				Partial<Pick<IUser, 'status' | 'statusText' | 'avatarETag'>> & { nickname?: string; outside?: boolean })[];
+			rooms: (Pick<Required<IRoom>, 't' | 'name' | 'lastMessage' | '_id'> & { uids?: string[]; usernames?: string[]; fname?: string })[];
 		};
 	};
 
 	'/v1/pw.getPolicy': {
 		GET: () => {
 			enabled: boolean;
-			policy: [name: string, value?: Record<string, number>][];
+			policy: [name: string, value?: Record<string, number | boolean>][];
 		};
 	};
 

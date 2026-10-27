@@ -1,32 +1,43 @@
 import { Select, Box, type SelectOption } from '@rocket.chat/fuselage';
-import { useEffectEvent } from '@rocket.chat/fuselage-hooks';
-import moment, { type Moment } from 'moment';
+import { useStableCallback } from '@rocket.chat/fuselage-hooks';
+import { endOfMonth } from 'date-fns/endOfMonth';
+import { format } from 'date-fns/format';
+import { startOfMonth } from 'date-fns/startOfMonth';
+import { subDays } from 'date-fns/subDays';
+import { subMonths } from 'date-fns/subMonths';
 import type { Key } from 'react';
 import { useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
-type DateRangePickerProps = {
+export type DateRangePickerProps = {
 	onChange(range: { start: string; end: string }): void;
+	defaultSelectedKey?: 'today' | 'yesterday' | 'thisWeek' | 'previousWeek' | 'thisMonth' | 'alldates';
 };
 
-const formatToDateInput = (date: Moment) => date.locale('en').format('YYYY-MM-DD');
+const formatToDateInput = (date: Date) => format(date, 'yyyy-MM-dd');
 
-const todayDate = formatToDateInput(moment());
+const getMonthRange = (monthsToSubtractFromToday: number) => {
+	const now = new Date();
+	const startDate = monthsToSubtractFromToday === 0 ? startOfMonth(now) : startOfMonth(subMonths(now, monthsToSubtractFromToday));
+	const endDate = monthsToSubtractFromToday === 0 ? now : endOfMonth(subMonths(now, monthsToSubtractFromToday));
+	return {
+		start: formatToDateInput(startDate),
+		end: formatToDateInput(endDate),
+	};
+};
 
-const getMonthRange = (monthsToSubtractFromToday: number) => ({
-	start: formatToDateInput(moment().subtract(monthsToSubtractFromToday, 'month').date(1)),
-	end: formatToDateInput(monthsToSubtractFromToday === 0 ? moment() : moment().subtract(monthsToSubtractFromToday).date(0)),
-});
+const getWeekRange = (daysToSubtractFromStart: number, daysToSubtractFromEnd: number) => {
+	const now = new Date();
+	return {
+		start: formatToDateInput(subDays(now, daysToSubtractFromStart)),
+		end: formatToDateInput(subDays(now, daysToSubtractFromEnd)),
+	};
+};
 
-const getWeekRange = (daysToSubtractFromStart: number, daysToSubtractFromEnd: number) => ({
-	start: formatToDateInput(moment().subtract(daysToSubtractFromStart, 'day')),
-	end: formatToDateInput(moment().subtract(daysToSubtractFromEnd, 'day')),
-});
-
-const DateRangePicker = ({ onChange }: DateRangePickerProps) => {
+const DateRangePicker = ({ onChange, defaultSelectedKey = 'alldates' }: DateRangePickerProps) => {
 	const { t } = useTranslation();
 
-	const handleRange = useEffectEvent((range: { start: string; end: string }) => {
+	const handleRange = useStableCallback((range: { start: string; end: string }) => {
 		onChange(range);
 	});
 
@@ -41,14 +52,7 @@ const DateRangePicker = ({ onChange }: DateRangePickerProps) => {
 		].map(([value, label]) => [value, label] as SelectOption);
 	}, [t]);
 
-	useEffect(() => {
-		handleRange({
-			start: formatToDateInput(moment(0)),
-			end: todayDate,
-		});
-	}, [handleRange]);
-
-	const handleOptionClick = useEffectEvent((action: Key) => {
+	const handleOptionClick = useStableCallback((action: Key) => {
 		switch (action) {
 			case 'today':
 				handleRange(getWeekRange(0, 0));
@@ -67,8 +71,8 @@ const DateRangePicker = ({ onChange }: DateRangePickerProps) => {
 				break;
 			case 'alldates':
 				handleRange({
-					start: formatToDateInput(moment(0)),
-					end: todayDate,
+					start: '',
+					end: '',
 				});
 				break;
 			default:
@@ -76,9 +80,13 @@ const DateRangePicker = ({ onChange }: DateRangePickerProps) => {
 		}
 	});
 
+	useEffect(() => {
+		handleOptionClick(defaultSelectedKey);
+	}, []);
+
 	return (
 		<Box flexGrow={0}>
-			<Select defaultSelectedKey='alldates' width='100%' options={timeOptions} onChange={handleOptionClick} />
+			<Select aria-label={t('Select_period')} defaultSelectedKey={defaultSelectedKey} options={timeOptions} onChange={handleOptionClick} />
 		</Box>
 	);
 };

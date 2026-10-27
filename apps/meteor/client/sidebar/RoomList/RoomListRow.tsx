@@ -1,59 +1,59 @@
-import type { IRoom, ISubscription } from '@rocket.chat/core-typings';
-import { SidebarSection } from '@rocket.chat/fuselage';
-import { useVideoConfAcceptCall, useVideoConfRejectIncomingCall, useVideoConfIncomingCalls } from '@rocket.chat/ui-video-conf';
+import type { SubscriptionWithRoom } from '@rocket.chat/ui-contexts';
+import {
+	useVideoConfAcceptCall,
+	useVideoConfIncomingCalls,
+	useVideoConfRejectIncomingCall,
+	useVideoConfWindowEnabled,
+} from '@rocket.chat/ui-video-conf';
 import type { TFunction } from 'i18next';
-import type { ReactElement } from 'react';
 import { memo, useMemo } from 'react';
 
-import SideBarItemTemplateWithData from './SideBarItemTemplateWithData';
-import type { useAvatarTemplate } from '../hooks/useAvatarTemplate';
-import type { useTemplateByViewMode } from '../hooks/useTemplateByViewMode';
+import SidebarItemTemplateWithData from './SidebarItemTemplateWithData';
+import type { RoomListItemViewMode } from '../../components/RoomListItem/RoomListItem';
 
-type RoomListRowProps = {
-	extended: boolean;
-	t: TFunction;
-	SideBarItemTemplate: ReturnType<typeof useTemplateByViewMode>;
-	AvatarTemplate: ReturnType<typeof useAvatarTemplate>;
-	openedRoom: string;
-	sidebarViewMode: 'extended' | 'condensed' | 'medium';
-	isAnonymous: boolean;
+export type RoomListRowProps = {
+	data: {
+		t: TFunction;
+		viewMode: RoomListItemViewMode;
+		showAvatar: boolean;
+		openedRoom: string;
+		isAnonymous: boolean;
+		userId?: string;
+	};
+	item: SubscriptionWithRoom;
 };
 
-const RoomListRow = ({ data, item }: { data: RoomListRowProps; item: ISubscription & IRoom }): ReactElement => {
-	const { extended, t, SideBarItemTemplate, AvatarTemplate, openedRoom, sidebarViewMode } = data;
+const RoomListRow = ({ data, item }: RoomListRowProps) => {
+	const { t, viewMode, showAvatar, openedRoom, userId } = data;
 
 	const acceptCall = useVideoConfAcceptCall();
 	const rejectCall = useVideoConfRejectIncomingCall();
 	const incomingCalls = useVideoConfIncomingCalls();
+	const conferenceWindowEnabled = useVideoConfWindowEnabled();
 	const currentCall = incomingCalls.find((call) => call.rid === item.rid);
 
+	// With the call window, a ringing call is answered from the list of the calls already running rather than
+	// from the row for its room — so the row keeps no accept/reject of its own.
 	const videoConfActions = useMemo(
 		() =>
-			currentCall && {
-				acceptCall: (): void => acceptCall(currentCall.callId),
-				rejectCall: (): void => rejectCall(currentCall.callId),
-			},
-		[acceptCall, rejectCall, currentCall],
+			!conferenceWindowEnabled && currentCall
+				? {
+						acceptCall: (): void => acceptCall(currentCall.callId),
+						rejectCall: (): void => rejectCall(currentCall.callId),
+					}
+				: undefined,
+		[acceptCall, rejectCall, currentCall, conferenceWindowEnabled],
 	);
 
-	if (typeof item === 'string') {
-		return (
-			<SidebarSection>
-				<SidebarSection.Title>{t(item)}</SidebarSection.Title>
-			</SidebarSection>
-		);
-	}
-
 	return (
-		<SideBarItemTemplateWithData
-			sidebarViewMode={sidebarViewMode}
+		<SidebarItemTemplateWithData
+			viewMode={viewMode}
+			showAvatar={showAvatar}
 			selected={item.rid === openedRoom}
 			t={t}
 			room={item}
-			extended={extended}
-			SideBarItemTemplate={SideBarItemTemplate}
-			AvatarTemplate={AvatarTemplate}
 			videoConfActions={videoConfActions}
+			userId={userId}
 		/>
 	);
 };

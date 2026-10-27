@@ -1,21 +1,36 @@
 import { Box } from '@rocket.chat/fuselage';
-import { useLayout, useSetting, useRoute, useCurrentRoutePath } from '@rocket.chat/ui-contexts';
-import type { ReactElement, ReactNode } from 'react';
+import { FeaturePreview, FeaturePreviewOff, FeaturePreviewOn } from '@rocket.chat/ui-client';
+import type { IRouterPaths } from '@rocket.chat/ui-contexts';
+import { useLayout, useSetting, useCurrentRoutePath, useRouter } from '@rocket.chat/ui-contexts';
+import type { ReactNode } from 'react';
 import { useEffect, useRef } from 'react';
 
 import AccessibilityShortcut from './AccessibilityShortcut';
 import MainContent from './MainContent';
 import { MainLayoutStyleTags } from './MainLayoutStyleTags';
+import NavBar from '../../../navbar';
 import Sidebar from '../../../sidebar';
+import SidebarRail from '../../../sidebar/SidebarRail';
+import SidebarRailHeader from '../../../sidebar/SidebarRail/SidebarRailHeader';
+import NavigationRegion from '../../navigation';
+import RoomsNavigationProvider from '../../navigation/providers/RoomsNavigationProvider';
 
-const LayoutWithSidebar = ({ children }: { children: ReactNode }): ReactElement => {
-	const { isEmbedded: embeddedLayout } = useLayout();
+const INVALID_ROOM_NAME_PREFIXES = ['#', '?'] as const;
+
+export type LayoutWithSidebarProps = { children: ReactNode };
+
+const LayoutWithSidebar = ({ children }: LayoutWithSidebarProps) => {
+	const {
+		isEmbedded: embeddedLayout,
+		sidebar: { shouldToggle },
+	} = useLayout();
 
 	const currentRoutePath = useCurrentRoutePath();
-	const channelRoute = useRoute('channel');
+	const router = useRouter();
 	const removeSidenav = embeddedLayout && !currentRoutePath?.startsWith('/admin');
 
-	const firstChannelAfterLogin = useSetting('First_Channel_After_Login');
+	const firstChannelAfterLogin = useSetting<string>('First_Channel_After_Login', '');
+	const roomName = (firstChannelAfterLogin.startsWith('#') ? firstChannelAfterLogin.slice(1) : firstChannelAfterLogin).trim();
 
 	const redirected = useRef(false);
 
@@ -26,7 +41,12 @@ const LayoutWithSidebar = ({ children }: { children: ReactNode }): ReactElement 
 			return;
 		}
 
-		if (!firstChannelAfterLogin || typeof firstChannelAfterLogin !== 'string') {
+		if (!roomName) {
+			return;
+		}
+
+		if (INVALID_ROOM_NAME_PREFIXES.some((prefix) => roomName.startsWith(prefix))) {
+			// Because this will break url routing. Eg: /channel/#roomName and /channel/?roomName which will route to path /channel
 			return;
 		}
 
@@ -35,20 +55,49 @@ const LayoutWithSidebar = ({ children }: { children: ReactNode }): ReactElement 
 		}
 		redirected.current = true;
 
-		channelRoute.push({ name: firstChannelAfterLogin });
-	}, [channelRoute, currentRoutePath, firstChannelAfterLogin]);
+		router.navigate({ name: `/channel/${roomName}` as keyof IRouterPaths });
+	}, [router, currentRoutePath, roomName]);
 
 	return (
-		<Box
-			bg='surface-light'
-			id='rocket-chat'
-			className={[embeddedLayout ? 'embedded-view' : undefined, 'menu-nav'].filter(Boolean).join(' ')}
-		>
+		<>
 			<AccessibilityShortcut />
-			<MainLayoutStyleTags />
-			{!removeSidenav && <Sidebar />}
-			<MainContent>{children}</MainContent>
-		</Box>
+			{!embeddedLayout && (
+				<FeaturePreview feature='sidebarRail' disabled={shouldToggle}>
+					<FeaturePreviewOn>
+						<SidebarRailHeader />
+					</FeaturePreviewOn>
+					<FeaturePreviewOff>
+						<NavBar />
+					</FeaturePreviewOff>
+				</FeaturePreview>
+			)}
+			<Box
+				backgroundColor='surface-light'
+				id='rocket-chat'
+				className={[embeddedLayout ? 'embedded-view' : undefined, 'menu-nav'].filter(Boolean).join(' ')}
+			>
+				<MainLayoutStyleTags />
+				<FeaturePreview feature='sidebarRail' disabled={shouldToggle || embeddedLayout}>
+					<FeaturePreviewOn>
+						<SidebarRail />
+					</FeaturePreviewOn>
+					<FeaturePreviewOff>{null}</FeaturePreviewOff>
+				</FeaturePreview>
+				{!removeSidenav && (
+					<FeaturePreview feature='secondarySidebar'>
+						<FeaturePreviewOn>
+							<RoomsNavigationProvider>
+								<NavigationRegion />
+							</RoomsNavigationProvider>
+						</FeaturePreviewOn>
+						<FeaturePreviewOff>
+							<Sidebar />
+						</FeaturePreviewOff>
+					</FeaturePreview>
+				)}
+				<MainContent>{children}</MainContent>
+			</Box>
+		</>
 	);
 };
 

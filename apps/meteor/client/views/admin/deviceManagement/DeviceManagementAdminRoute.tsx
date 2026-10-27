@@ -1,23 +1,22 @@
 import { usePermission, useRouter, useSetModal, useCurrentModal } from '@rocket.chat/ui-contexts';
-import type { ReactElement } from 'react';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import DeviceManagementAdminPage from './DeviceManagementAdminPage';
-import { getURL } from '../../../../app/utils/client/getURL';
 import GenericUpsellModal from '../../../components/GenericUpsellModal';
 import { useUpsellActions } from '../../../components/GenericUpsellModal/hooks';
 import PageSkeleton from '../../../components/PageSkeleton';
 import { useHasLicenseModule } from '../../../hooks/useHasLicenseModule';
+import { getURL } from '../../../lib/getURL';
 import NotAuthorizedPage from '../../notAuthorized/NotAuthorizedPage';
 
-const DeviceManagementAdminRoute = (): ReactElement => {
+const DeviceManagementAdminRoute = () => {
 	const { t } = useTranslation();
 	const router = useRouter();
 	const setModal = useSetModal();
 	const isModalOpen = !!useCurrentModal();
 
-	const hasDeviceManagement = useHasLicenseModule('device-management') as boolean;
+	const { data: hasDeviceManagement = false, isPending } = useHasLicenseModule('device-management');
 	const canViewDeviceManagement = usePermission('view-device-management');
 
 	const { shouldShowUpsell, handleManageSubscription } = useUpsellActions(hasDeviceManagement);
@@ -39,7 +38,7 @@ const DeviceManagementAdminRoute = (): ReactElement => {
 		}
 	}, [shouldShowUpsell, router, setModal, t, handleManageSubscription]);
 
-	if (isModalOpen) {
+	if (isModalOpen || isPending) {
 		return <PageSkeleton />;
 	}
 

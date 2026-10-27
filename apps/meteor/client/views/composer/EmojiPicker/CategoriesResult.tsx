@@ -1,15 +1,15 @@
 import { css } from '@rocket.chat/css-in-js';
 import { Box } from '@rocket.chat/fuselage';
+import { VirtualizedScrollbars } from '@rocket.chat/ui-client';
 import type { MouseEvent } from 'react';
 import { forwardRef, memo, useRef } from 'react';
 import type { ListRange, VirtuosoHandle } from 'react-virtuoso';
 import { Virtuoso } from 'react-virtuoso';
 
 import EmojiCategoryRow from './EmojiCategoryRow';
-import type { EmojiPickerItem } from '../../../../app/emoji/client';
-import { VirtualizedScrollbars } from '../../../components/CustomScrollbars';
+import type { EmojiPickerItem } from '../../../lib/emoji';
 
-type CategoriesResultProps = {
+export type CategoriesResultProps = {
 	items: EmojiPickerItem[];
 	customItemsLimit: number;
 	handleLoadMore: () => void;

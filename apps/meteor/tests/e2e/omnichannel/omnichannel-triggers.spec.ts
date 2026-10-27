@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
 import { createFakeVisitor } from '../../mocks/data';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { OmnichannelLiveChat, HomeOmnichannel } from '../page-objects';
+import { OmnichannelLiveChat, OmnichannelTriggers } from '../page-objects/omnichannel';
 import { test, expect } from '../utils/test';
 
 test.describe.serial('OC - Livechat Triggers', () => {
@@ -12,7 +12,7 @@ test.describe.serial('OC - Livechat Triggers', () => {
 	let triggerMessage: string;
 	let poLiveChat: OmnichannelLiveChat;
 	let newVisitor: { email: string; name: string };
-	let agent: { page: Page; poHomeOmnichannel: HomeOmnichannel };
+	let agent: { page: Page; poHomeOmnichannelTriggers: OmnichannelTriggers };
 
 	test.beforeAll(async ({ api, browser }) => {
 		newVisitor = createFakeVisitor();
@@ -26,11 +26,12 @@ test.describe.serial('OC - Livechat Triggers', () => {
 		requests.every((e) => expect(e.status()).toBe(200));
 
 		const { page } = await createAuxContext(browser, Users.user1, '/omnichannel/triggers');
-		agent = { page, poHomeOmnichannel: new HomeOmnichannel(page) };
+		agent = { page, poHomeOmnichannelTriggers: new OmnichannelTriggers(page) };
 		await page.emulateMedia({ reducedMotion: 'reduce' });
 	});
 
 	test.beforeEach(async ({ page, api }) => {
+		await page.emulateMedia({ reducedMotion: 'reduce' });
 		poLiveChat = new OmnichannelLiveChat(page, api);
 	});
 
@@ -49,8 +50,8 @@ test.describe.serial('OC - Livechat Triggers', () => {
 		await agent.page.close();
 	});
 
-	test('OC - Livechat Triggers - Baseline', async ({ page }) => {
-		await page.goto('/livechat');
+	test('OC - Livechat Triggers - Baseline', async () => {
+		await poLiveChat.goto();
 		await poLiveChat.openLiveChat();
 
 		await test.step('expect to register visitor', async () => {
@@ -73,21 +74,19 @@ test.describe.serial('OC - Livechat Triggers', () => {
 	test('OC - Livechat Triggers - Create and edit trigger', async () => {
 		triggerMessage = 'This is a trigger message time on site';
 		await test.step('expect create new trigger', async () => {
-			await agent.poHomeOmnichannel.triggers.createTrigger(triggersName, triggerMessage, 'time-on-site', 5);
-			await agent.poHomeOmnichannel.triggers.toastMessage.dismissToast();
+			await agent.poHomeOmnichannelTriggers.createTrigger(triggersName, triggerMessage, 'Visitor time on site', 5);
 		});
 
 		triggerMessage = 'This is a trigger message chat opened by visitor';
 		await test.step('expect update trigger', async () => {
-			await agent.poHomeOmnichannel.triggers.firstRowInTriggerTable(triggersName).click();
-			await agent.poHomeOmnichannel.triggers.updateTrigger(triggersName, triggerMessage);
-			await agent.poHomeOmnichannel.triggers.toastMessage.dismissToast();
+			await agent.poHomeOmnichannelTriggers.table.findRowByName(triggersName).click();
+			await agent.poHomeOmnichannelTriggers.updateTrigger(`edited-${triggersName}`, triggerMessage);
 		});
 	});
 
-	test('OC - Livechat Triggers - Condition: chat opened by visitor', async ({ page }) => {
+	test('OC - Livechat Triggers - Condition: chat opened by visitor', async () => {
 		await test.step('expect to start conversation', async () => {
-			await page.goto('/livechat');
+			await poLiveChat.goto();
 			await poLiveChat.openLiveChat();
 		});
 
@@ -116,18 +115,15 @@ test.describe.serial('OC - Livechat Triggers', () => {
 		});
 	});
 
-	test('OC - Livechat Triggers - Condition: after guest registration', async ({ page }) => {
+	test('OC - Livechat Triggers - Condition: after guest registration', async () => {
 		triggerMessage = 'This is a trigger message after guest registration';
 		await test.step('expect update trigger to after guest registration', async () => {
-			await agent.poHomeOmnichannel.triggers.firstRowInTriggerTable(`edited-${triggersName}`).click();
-			await agent.poHomeOmnichannel.triggers.fillTriggerForm({ condition: 'after-guest-registration', triggerMessage });
-			await agent.poHomeOmnichannel.triggers.btnSave.click();
-			await agent.poHomeOmnichannel.triggers.toastMessage.dismissToast();
-			await agent.page.waitForTimeout(500);
+			await agent.poHomeOmnichannelTriggers.table.findRowByName(`edited-${triggersName}`).click();
+			await agent.poHomeOmnichannelTriggers.updateTrigger(`re-edited-${triggersName}`, triggerMessage, 'After guest registration');
 		});
 
 		await test.step('expect to start conversation', async () => {
-			await page.goto('/livechat');
+			await poLiveChat.goto();
 			await poLiveChat.openLiveChat();
 		});
 
@@ -137,6 +133,7 @@ test.describe.serial('OC - Livechat Triggers', () => {
 		});
 
 		await test.step('expect to register visitor', async () => {
+			await expect(poLiveChat.inputName).toBeVisible();
 			await poLiveChat.sendMessage(newVisitor, false);
 		});
 
@@ -158,8 +155,6 @@ test.describe.serial('OC - Livechat Triggers', () => {
 	});
 
 	test('OC - Livechat Triggers - Delete trigger', async () => {
-		await agent.poHomeOmnichannel.triggers.btnDeletefirstRowInTable.click();
-		await agent.poHomeOmnichannel.triggers.btnModalRemove.click();
-		await expect(agent.poHomeOmnichannel.triggers.removeToastMessage).toBeVisible();
+		await agent.poHomeOmnichannelTriggers.removeTrigger(`re-edited-${triggersName}`);
 	});
 });

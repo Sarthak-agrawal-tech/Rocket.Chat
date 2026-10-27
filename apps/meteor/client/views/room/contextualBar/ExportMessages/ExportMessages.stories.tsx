@@ -1,15 +1,24 @@
-import type { Meta, StoryFn } from '@storybook/react';
+import { Box } from '@rocket.chat/fuselage';
+import { Contextualbar } from '@rocket.chat/ui-client';
+import type { StoryObj, Meta } from '@storybook/react';
 
 import ExportMessages from './index';
-import { Contextualbar } from '../../../../components/Contextualbar';
 
 export default {
 	component: ExportMessages,
 	parameters: {
 		layout: 'fullscreen',
 	},
-	decorators: [(fn) => <Contextualbar height='100vh'>{fn()}</Contextualbar>],
+	decorators: [
+		(fn) => (
+			<Box height='100vh'>
+				<Contextualbar>{fn()}</Contextualbar>
+			</Box>
+		),
+	],
 } satisfies Meta<typeof ExportMessages>;
 
-export const Default: StoryFn<typeof ExportMessages> = () => <ExportMessages />;
-Default.storyName = 'ExportMessages';
+export const Default: StoryObj<typeof ExportMessages> = {
+	render: () => <ExportMessages />,
+	name: 'ExportMessages',
+};

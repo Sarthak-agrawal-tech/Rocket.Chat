@@ -1,24 +1,23 @@
-import type { ReactElement } from 'react';
-import { useTranslation } from 'react-i18next';
-
-import type { PriorityFormData } from './PriorityEditForm';
-import PriorityEditFormWithData from './PriorityEditFormWithData';
 import {
 	ContextualbarTitle,
 	ContextualbarHeader,
 	ContextualbarClose,
 	ContextualbarScrollableContent,
 	ContextualbarDialog,
-} from '../../../components/Contextualbar';
+} from '@rocket.chat/ui-client';
+import { useTranslation } from 'react-i18next';
 
-type PriorityListProps = {
+import type { PriorityFormData } from './PriorityEditForm';
+import PriorityEditFormWithData from './PriorityEditFormWithData';
+
+export type PriorityListProps = {
 	context: 'edit';
 	priorityId: string;
 	onSave: (data: PriorityFormData) => Promise<void>;
 	onClose: () => void;
 };
 
-const PriorityList = ({ priorityId, onClose, onSave }: PriorityListProps): ReactElement | null => {
+const PriorityList = ({ priorityId, onClose, onSave }: PriorityListProps) => {
 	const { t } = useTranslation();
 
 	return (
@@ -28,7 +27,7 @@ const PriorityList = ({ priorityId, onClose, onSave }: PriorityListProps): React
 				<ContextualbarClose onClick={onClose} />
 			</ContextualbarHeader>
 			<ContextualbarScrollableContent height='100%'>
-				<PriorityEditFormWithData priorityId={priorityId} onSave={onSave} onCancel={onClose} />
+				<PriorityEditFormWithData priorityId={priorityId} onSave={onSave} />
 			</ContextualbarScrollableContent>
 		</ContextualbarDialog>
 	);

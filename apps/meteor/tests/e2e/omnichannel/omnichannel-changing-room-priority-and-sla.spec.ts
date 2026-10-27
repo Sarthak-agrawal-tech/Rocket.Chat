@@ -4,7 +4,8 @@ import { createFakeVisitor } from '../../mocks/data';
 import { ADMIN_CREDENTIALS, IS_EE } from '../config/constants';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { OmnichannelLiveChat, HomeChannel } from '../page-objects';
+import { HomeChannel } from '../page-objects';
+import { OmnichannelLiveChat } from '../page-objects/omnichannel';
 import { getPriorityByi18nLabel } from '../utils/omnichannel/priority';
 import { createSLA } from '../utils/omnichannel/sla';
 import { test, expect } from '../utils/test';
@@ -44,7 +45,7 @@ test.describe.serial('omnichannel-changing-room-priority-and-sla', () => {
 		const { page } = await createAuxContext(browser, Users.admin);
 		agent = { page, poHomeChannel: new HomeChannel(page) };
 
-		await agent.poHomeChannel.sidenav.switchStatus('online');
+		await agent.poHomeChannel.navbar.changeUserStatus('online');
 	});
 
 	test.afterAll(async ({ api }) => {
@@ -60,13 +61,13 @@ test.describe.serial('omnichannel-changing-room-priority-and-sla', () => {
 	test('expect to initiate a new livechat conversation', async ({ page, api }) => {
 		newVisitor = createFakeVisitor();
 		poLiveChat = new OmnichannelLiveChat(page, api);
-		await page.goto('/livechat');
+		await poLiveChat.goto();
 		await poLiveChat.openLiveChat();
 		await poLiveChat.sendMessage(newVisitor, false);
 		await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_user');
 		await poLiveChat.btnSendMessageToOnlineAgent.click();
 
-		await agent.poHomeChannel.sidenav.getQueuedChat(newVisitor.name).click();
+		await agent.poHomeChannel.sidebar.getSidebarItemByName(newVisitor.name).click();
 	});
 
 	test('expect to change priority of room and corresponding system message should be displayed', async ({ api }) => {
@@ -94,7 +95,7 @@ test.describe.serial('omnichannel-changing-room-priority-and-sla', () => {
 		});
 
 		await expect(agent.poHomeChannel.content.lastSystemMessageBody).toHaveText(
-			`SLA Policy changed: ${ADMIN_CREDENTIALS.username} changed the SLA Policy to ${sla.name}`,
+			`SLA policy changed: ${ADMIN_CREDENTIALS.username} changed the SLA policy to ${sla.name}`,
 		);
 
 		await test.step('cleanup SLA', async () => {

@@ -3,7 +3,6 @@ import {
 	Button,
 	ButtonGroup,
 	Icon,
-	Margins,
 	States,
 	StatesIcon,
 	StatesSubtitle,
@@ -12,15 +11,8 @@ import {
 	Throbber,
 } from '@rocket.chat/fuselage';
 import { useDebouncedValue, useResizeObserver } from '@rocket.chat/fuselage-hooks';
-import { useSetting, useUserPreference, useUserId } from '@rocket.chat/ui-contexts';
-import type { ChangeEvent, ReactElement } from 'react';
-import { useMemo, useState } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Virtuoso } from 'react-virtuoso';
-
-import ContactHistoryMessage from './ContactHistoryMessage';
-import { useHistoryMessageList } from './useHistoryMessageList';
 import {
+	VirtualizedScrollbars,
 	ContextualbarHeader,
 	ContextualbarIcon,
 	ContextualbarTitle,
@@ -29,14 +21,19 @@ import {
 	ContextualbarEmptyContent,
 	ContextualbarDialog,
 	ContextualbarFooter,
-} from '../../../../components/Contextualbar';
-import { VirtualizedScrollbars } from '../../../../components/CustomScrollbars';
-import { useRecordList } from '../../../../hooks/lists/useRecordList';
-import { AsyncStatePhase } from '../../../../lib/asyncState';
+} from '@rocket.chat/ui-client';
+import { useSetting, useUserPreference } from '@rocket.chat/ui-contexts';
+import type { ChangeEvent } from 'react';
+import { useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Virtuoso } from 'react-virtuoso';
+
+import ContactHistoryMessage from './ContactHistoryMessage';
+import { useHistoryMessageList } from './useHistoryMessageList';
 import { isMessageNewDay } from '../../../room/MessageList/lib/isMessageNewDay';
 import { isMessageSequential } from '../../../room/MessageList/lib/isMessageSequential';
 
-type ContactHistoryMessagesListProps = {
+export type ContactHistoryMessagesListProps = {
 	chatId: string;
 	onClose: () => void;
 	onOpenRoom?: () => void;
@@ -46,7 +43,6 @@ const ContactHistoryMessagesList = ({ chatId, onClose, onOpenRoom }: ContactHist
 	const { t } = useTranslation();
 	const [text, setText] = useState('');
 	const showUserAvatar = !!useUserPreference<boolean>('displayAvatars');
-	const userId = useUserId();
 
 	const { ref, contentBoxSize: { inlineSize = 378, blockSize = 1 } = {} } = useResizeObserver<HTMLElement>({
 		debounceDelay: 200,
@@ -63,13 +59,15 @@ const ContactHistoryMessagesList = ({ chatId, onClose, onOpenRoom }: ContactHist
 		500,
 	);
 
-	const { itemsList: messageList, loadMoreItems } = useHistoryMessageList(query, userId);
+	const { isPending, error, isSuccess, data, fetchNextPage } = useHistoryMessageList(query);
+
+	const messages = data?.items || [];
+	const totalItemCount = data?.itemCount ?? 0;
 
 	const handleSearchChange = (event: ChangeEvent<HTMLInputElement>): void => {
 		setText(event.currentTarget.value);
 	};
 
-	const { phase, error, items: messages, itemCount: totalItemCount } = useRecordList(messageList);
 	const messageGroupingPeriod = useSetting('Message_GroupingPeriod', 300);
 
 	return (
@@ -80,29 +78,27 @@ const ContactHistoryMessagesList = ({ chatId, onClose, onOpenRoom }: ContactHist
 				<ContextualbarClose onClick={onClose} />
 			</ContextualbarHeader>
 
-			<ContextualbarContent paddingInline={0}>
+			<ContextualbarContent flush>
 				<Box
 					display='flex'
 					flexDirection='row'
-					p={24}
+					padding={24}
 					borderBlockEndWidth='default'
 					borderBlockEndStyle='solid'
 					borderBlockEndColor='extra-light'
 					flexShrink={0}
 				>
-					<Box display='flex' flexDirection='row' flexGrow={1} mi='neg-x4'>
-						<Margins inline={4}>
-							<TextInput
-								placeholder={t('Search')}
-								value={text}
-								onChange={handleSearchChange}
-								addon={<Icon name='magnifier' size='x20' />}
-							/>
-						</Margins>
+					<Box display='flex' flexDirection='row' flexGrow={1}>
+						<TextInput
+							placeholder={t('Search')}
+							value={text}
+							onChange={handleSearchChange}
+							endAddon={<Icon name='magnifier' size='x20' />}
+						/>
 					</Box>
 				</Box>
-				{phase === AsyncStatePhase.LOADING && (
-					<Box pi={24} pb={12}>
+				{isPending && (
+					<Box paddingInline={24} paddingBlock={12}>
 						<Throbber size='x12' />
 					</Box>
 				)}
@@ -113,9 +109,9 @@ const ContactHistoryMessagesList = ({ chatId, onClose, onOpenRoom }: ContactHist
 						<StatesSubtitle>{error.toString()}</StatesSubtitle>
 					</States>
 				)}
-				{phase !== AsyncStatePhase.LOADING && totalItemCount === 0 && <ContextualbarEmptyContent title={t('No_results_found')} />}
+				{isSuccess && totalItemCount === 0 && <ContextualbarEmptyContent title={t('No_results_found')} />}
 				<Box flexGrow={1} flexShrink={1} overflow='hidden' display='flex' ref={ref}>
-					{!error && totalItemCount > 0 && history.length > 0 && (
+					{!error && totalItemCount > 0 && messages.length > 0 && (
 						<VirtualizedScrollbars>
 							<Virtuoso
 								totalCount={totalItemCount}
@@ -125,16 +121,10 @@ const ContactHistoryMessagesList = ({ chatId, onClose, onOpenRoom }: ContactHist
 									height: blockSize,
 									width: inlineSize,
 								}}
-								endReached={
-									phase === AsyncStatePhase.LOADING
-										? (): void => undefined
-										: (start): void => {
-												loadMoreItems(start, Math.min(50, totalItemCount - start));
-											}
-								}
+								endReached={() => fetchNextPage()}
 								overscan={25}
 								data={messages}
-								itemContent={(index, data): ReactElement => {
+								itemContent={(index, data) => {
 									const lastMessage = messages[index - 1];
 									const isSequential = isMessageSequential(data, lastMessage, messageGroupingPeriod);
 									const isNewDay = isMessageNewDay(data, lastMessage);

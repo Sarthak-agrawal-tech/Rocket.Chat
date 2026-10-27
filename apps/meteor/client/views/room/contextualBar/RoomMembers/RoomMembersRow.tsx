@@ -1,11 +1,14 @@
-import type { IUser, IRoom } from '@rocket.chat/core-typings';
-import type { MouseEvent, ReactElement } from 'react';
+import type { IRoom } from '@rocket.chat/core-typings';
+import { ItemSkeleton } from '@rocket.chat/fuselage';
+import { ITEM_MEDIA_SIZE } from '@rocket.chat/ui-avatar';
+import type { MouseEvent } from 'react';
 import { memo } from 'react';
 
 import RoomMembersItem from './RoomMembersItem';
+import type { RoomMember } from '../../../hooks/useMembersList';
 
-type RoomMembersRowProps = {
-	user: Pick<IUser, 'federated' | 'username' | 'name' | '_id' | 'freeSwitchExtension'>;
+export type RoomMembersRowProps = {
+	user: Pick<RoomMember, 'federated' | 'username' | 'name' | '_id' | 'sipExtension' | 'subscription'>;
 	data: {
 		onClickView: (e: MouseEvent<HTMLElement>) => void;
 		rid: IRoom['_id'];
@@ -15,9 +18,9 @@ type RoomMembersRowProps = {
 	useRealName: boolean;
 };
 
-const RoomMembersRow = ({ user, data: { onClickView, rid }, index, reload, useRealName }: RoomMembersRowProps): ReactElement => {
+const RoomMembersRow = ({ user, data: { onClickView, rid }, index, reload, useRealName }: RoomMembersRowProps) => {
 	if (!user?._id) {
-		return <RoomMembersItem.Skeleton />;
+		return <ItemSkeleton mediaSize={ITEM_MEDIA_SIZE.medium} inset='lg' />;
 	}
 
 	return (
@@ -29,7 +32,8 @@ const RoomMembersRow = ({ user, data: { onClickView, rid }, index, reload, useRe
 			rid={rid}
 			name={user.name}
 			federated={user.federated}
-			freeSwitchExtension={user.freeSwitchExtension}
+			sipExtension={user.sipExtension}
+			subscription={user.subscription}
 			onClickView={onClickView}
 			reload={reload}
 		/>

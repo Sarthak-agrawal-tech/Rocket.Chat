@@ -1,6 +1,25 @@
-import { Pagination, States, StatesAction, StatesActions, StatesIcon, StatesTitle, Box, Button } from '@rocket.chat/fuselage';
-import { useDebouncedValue, useEffectEvent } from '@rocket.chat/fuselage-hooks';
-import { useRoute } from '@rocket.chat/ui-contexts';
+import {
+	Pagination,
+	States,
+	StatesAction,
+	StatesActions,
+	StatesIcon,
+	StatesTitle,
+	Box,
+	Button,
+	type TableColumnWidth,
+} from '@rocket.chat/fuselage';
+import { useDebouncedValue, useStableCallback } from '@rocket.chat/fuselage-hooks';
+import {
+	GenericTable,
+	GenericTableHeader,
+	GenericTableBody,
+	GenericTableHeaderCell,
+	GenericTableLoadingTable,
+	usePagination,
+	useSort,
+	GenericNoResults,
+} from '@rocket.chat/ui-client';
 import { hashKey } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,25 +27,14 @@ import { useTranslation } from 'react-i18next';
 import ContactTableRow from './ContactTableRow';
 import { useCurrentContacts } from './hooks/useCurrentContacts';
 import FilterByText from '../../../../components/FilterByText';
-import GenericNoResults from '../../../../components/GenericNoResults';
-import {
-	GenericTable,
-	GenericTableHeader,
-	GenericTableBody,
-	GenericTableHeaderCell,
-	GenericTableLoadingTable,
-} from '../../../../components/GenericTable';
-import { usePagination } from '../../../../components/GenericTable/hooks/usePagination';
-import { useSort } from '../../../../components/GenericTable/hooks/useSort';
-import { useIsCallReady } from '../../../../contexts/CallContext';
 import { links } from '../../../../lib/links';
+import { useOmnichannelDirectoryRouter } from '../hooks/useOmnichannelDirectoryRouter';
 
 function ContactTable() {
 	const { t } = useTranslation();
 
 	const [term, setTerm] = useState('');
-	const directoryRoute = useRoute('omnichannel-directory');
-	const isCallReady = useIsCallReady();
+	const omnichannelDirectoryRouter = useOmnichannelDirectoryRouter();
 
 	const { current, itemsPerPage, setItemsPerPage, setCurrent, ...paginationProps } = usePagination();
 	const { sortBy, sortDirection, setSort } = useSort<'name' | 'channels.lastChat.ts' | 'contactManager.username' | 'lastChat.ts'>('name');
@@ -44,8 +52,8 @@ function ContactTable() {
 		500,
 	);
 
-	const onButtonNewClick = useEffectEvent(() =>
-		directoryRoute.push({
+	const onButtonNewClick = useStableCallback(() =>
+		omnichannelDirectoryRouter.navigate({
 			tab: 'contacts',
 			context: 'new',
 		}),
@@ -55,6 +63,8 @@ function ContactTable() {
 
 	const [defaultQuery] = useState(hashKey([query]));
 	const queryHasChanged = defaultQuery !== hashKey([query]);
+
+	const columns: TableColumnWidth[] = ['auto', 'auto', 'auto', 'auto', 40];
 
 	const headers = (
 		<>
@@ -88,8 +98,7 @@ function ContactTable() {
 			>
 				{t('Last_Chat')}
 			</GenericTableHeaderCell>
-			{isCallReady && <GenericTableHeaderCell key='call' width={44} />}
-			<GenericTableHeaderCell key='spacer' w={40} />
+			<GenericTableHeaderCell key='spacer' />
 		</>
 	);
 
@@ -97,13 +106,13 @@ function ContactTable() {
 		<>
 			{((isSuccess && data?.contacts.length > 0) || queryHasChanged) && (
 				<FilterByText value={term} onChange={(event) => setTerm(event.target.value)}>
-					<Button onClick={onButtonNewClick} primary>
+					<Button onClick={onButtonNewClick} variant='primary'>
 						{t('New_contact')}
 					</Button>
 				</FilterByText>
 			)}
 			{isLoading && (
-				<GenericTable>
+				<GenericTable columns={columns}>
 					<GenericTableHeader>{headers}</GenericTableHeader>
 					<GenericTableBody>
 						<GenericTableLoadingTable headerCells={headers.props.children.filter(Boolean).length} />
@@ -124,9 +133,13 @@ function ContactTable() {
 			)}
 			{isSuccess && data?.contacts.length > 0 && (
 				<>
-					<GenericTable>
+					<GenericTable columns={columns} aria-label={t('Omnichannel_Contact_Center_Contacts')}>
 						<GenericTableHeader>{headers}</GenericTableHeader>
-						<GenericTableBody>{data?.contacts.map((contact) => <ContactTableRow key={contact._id} {...contact} />)}</GenericTableBody>
+						<GenericTableBody>
+							{data?.contacts.map((contact) => (
+								<ContactTableRow key={contact._id} {...contact} />
+							))}
+						</GenericTableBody>
 					</GenericTable>
 					<Pagination
 						divider
@@ -140,7 +153,7 @@ function ContactTable() {
 				</>
 			)}
 			{isError && (
-				<Box mbs={20}>
+				<Box marginBlockStart={20}>
 					<States>
 						<StatesIcon variation='danger' name='circle-exclamation' />
 						<StatesTitle>{t('Connection_error')}</StatesTitle>

@@ -5,9 +5,9 @@ import { License } from '@rocket.chat/license';
 import moment from 'moment';
 
 import { OmnichannelQueue } from './queue';
-import { RoutingManager } from '../../../app/livechat/server/lib/RoutingManager';
-import { notifyAgentStatusChanged } from '../../../app/livechat/server/lib/omni-users';
-import { settings } from '../../../app/settings/server';
+import { RoutingManager } from '../../lib/omnichannel/RoutingManager';
+import { notifyAgentStatusChanged } from '../../lib/omnichannel/omni-users';
+import { settings } from '../../settings';
 
 export class OmnichannelService extends ServiceClassInternal implements IOmnichannelService {
 	protected name = 'omnichannel';
@@ -19,7 +19,7 @@ export class OmnichannelService extends ServiceClassInternal implements IOmnicha
 		this.queueWorker = new OmnichannelQueue();
 	}
 
-	async created() {
+	override async created() {
 		this.onEvent('presence.status', async ({ user }): Promise<void> => {
 			if (!user?._id) {
 				return;
@@ -32,7 +32,7 @@ export class OmnichannelService extends ServiceClassInternal implements IOmnicha
 		});
 	}
 
-	async started() {
+	override async started() {
 		settings.watchMultiple(['Livechat_enabled', 'Livechat_Routing_Method'], () => {
 			this.queueWorker.shouldStart();
 		});

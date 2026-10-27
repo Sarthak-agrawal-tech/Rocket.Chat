@@ -1,15 +1,13 @@
-import type { Box } from '@rocket.chat/fuselage';
-import type { ComponentProps } from 'react';
+import { HeaderToolbar, HeaderToolbarAction, HeaderToolbarDivider } from '@rocket.chat/ui-client';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import QuickActionOptions from './QuickActionOptions';
 import { useQuickActions } from './hooks/useQuickActions';
-import { HeaderToolbar, HeaderToolbarAction, HeaderToolbarDivider } from '../../../../../components/Header';
 import { useOmnichannelRoom } from '../../../contexts/RoomContext';
 
-type QuickActionsProps = {
-	className?: ComponentProps<typeof Box>['className'];
+export type QuickActionsProps = {
+	className?: string;
 };
 
 const QuickActions = ({ className }: QuickActionsProps) => {
@@ -32,7 +30,7 @@ const QuickActions = ({ className }: QuickActionsProps) => {
 				};
 
 				if (options) {
-					return <QuickActionOptions key={id} action={action} options={options} {...props} />;
+					return <QuickActionOptions options={options} key={id} action={action} {...props} />;
 				}
 
 				return <HeaderToolbarAction key={id} onClick={() => action(id)} {...props} />;

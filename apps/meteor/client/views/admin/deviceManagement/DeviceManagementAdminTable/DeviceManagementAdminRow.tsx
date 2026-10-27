@@ -1,16 +1,14 @@
 import { Box } from '@rocket.chat/fuselage';
-import { useMediaQuery, useEffectEvent } from '@rocket.chat/fuselage-hooks';
+import { useMediaQuery, useStableCallback } from '@rocket.chat/fuselage-hooks';
 import type { GenericMenuItemProps } from '@rocket.chat/ui-client';
-import { GenericMenu } from '@rocket.chat/ui-client';
+import { GenericMenu, GenericTableRow, GenericTableCell, useFormatDateAndTime } from '@rocket.chat/ui-client';
 import { useRoute } from '@rocket.chat/ui-contexts';
 import type { KeyboardEvent } from 'react';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import { GenericTableRow, GenericTableCell } from '../../../../components/GenericTable';
 import DeviceIcon from '../../../../components/deviceManagement/DeviceIcon';
 import { useDeviceLogout } from '../../../../hooks/useDeviceLogout';
-import { useFormatDateAndTime } from '../../../../hooks/useFormatDateAndTime';
 
 type DeviceRowProps = {
 	_id: string;
@@ -40,7 +38,7 @@ const DeviceManagementAdminRow = ({
 
 	const handleDeviceLogout = useDeviceLogout(_id, '/v1/sessions/logout');
 
-	const handleClick = useEffectEvent((): void => {
+	const handleClick = useStableCallback((): void => {
 		deviceManagementRouter.push({
 			context: 'info',
 			id: _id,
@@ -67,7 +65,7 @@ const DeviceManagementAdminRow = ({
 	];
 
 	return (
-		<GenericTableRow key={_id} onKeyDown={handleKeyDown} onClick={handleClick} tabIndex={0} action>
+		<GenericTableRow key={_id} onKeyDown={handleKeyDown} onClick={handleClick} tabIndex={0} action aria-label={_id}>
 			<GenericTableCell>
 				<Box display='flex' alignItems='center'>
 					<DeviceIcon deviceType={deviceType} />
@@ -76,10 +74,10 @@ const DeviceManagementAdminRow = ({
 			</GenericTableCell>
 			<GenericTableCell>{rcVersion}</GenericTableCell>
 			<GenericTableCell>{deviceOSName}</GenericTableCell>
-			<GenericTableCell withTruncatedText>{username}</GenericTableCell>
+			<GenericTableCell truncate>{username}</GenericTableCell>
 			{mediaQuery && <GenericTableCell>{formatDateAndTime(loginAt)}</GenericTableCell>}
-			{mediaQuery && <GenericTableCell withTruncatedText>{_id}</GenericTableCell>}
-			{mediaQuery && <GenericTableCell withTruncatedText>{ip}</GenericTableCell>}
+			{mediaQuery && <GenericTableCell truncate>{_id}</GenericTableCell>}
+			{mediaQuery && <GenericTableCell truncate>{ip}</GenericTableCell>}
 			<GenericTableCell onClick={(e) => e.stopPropagation()}>
 				<GenericMenu detached placement='bottom-end' title={t('Options')} items={menuItems} />
 			</GenericTableCell>

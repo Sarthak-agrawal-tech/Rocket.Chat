@@ -9,8 +9,8 @@ export class StatisticsRaw extends BaseRaw<IStats> implements IStatisticsModel {
 		super(db, 'statistics');
 	}
 
-	protected modelIndexes(): IndexDescription[] {
-		return [{ key: { createdAt: -1 } }];
+	protected override modelIndexes(): IndexDescription[] {
+		return [{ key: { createdAt: 1 }, expireAfterSeconds: 365 * 24 * 60 * 60 }];
 	}
 
 	async findLast(): Promise<IStats> {

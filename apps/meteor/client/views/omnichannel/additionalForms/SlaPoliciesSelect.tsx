@@ -5,7 +5,7 @@ import { useId, useMemo } from 'react';
 
 import { useHasLicenseModule } from '../../../hooks/useHasLicenseModule';
 
-type SlaPoliciesSelectProps = {
+export type SlaPoliciesSelectProps = {
 	value: string;
 	label: string;
 	options: Serialized<IOmnichannelServiceLevelAgreements[]>;
@@ -13,7 +13,7 @@ type SlaPoliciesSelectProps = {
 };
 
 export const SlaPoliciesSelect = ({ value, label, options, onChange }: SlaPoliciesSelectProps) => {
-	const hasLicense = useHasLicenseModule('livechat-enterprise');
+	const { data: hasLicense = false } = useHasLicenseModule('livechat-enterprise');
 	const optionsSelect = useMemo<SelectOption[]>(() => options?.map((option) => [option._id, option.name]), [options]);
 	const fieldId = useId();
 
@@ -23,9 +23,9 @@ export const SlaPoliciesSelect = ({ value, label, options, onChange }: SlaPolici
 
 	return (
 		<Field>
-			<FieldLabel id={fieldId}>{label}</FieldLabel>
+			<FieldLabel htmlFor={fieldId}>{label}</FieldLabel>
 			<FieldRow>
-				<Select aria-labelledby={fieldId} value={value} options={optionsSelect} onChange={(value) => onChange(String(value))} />
+				<Select id={fieldId} value={value} options={optionsSelect} onChange={(value) => onChange(String(value))} />
 			</FieldRow>
 		</Field>
 	);

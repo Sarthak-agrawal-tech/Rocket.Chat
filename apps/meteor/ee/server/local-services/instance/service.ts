@@ -1,7 +1,7 @@
-import os from 'os';
+import os from 'node:os';
 
-import type { AppStatusReport } from '@rocket.chat/core-services';
-import { Apps, License, ServiceClassInternal } from '@rocket.chat/core-services';
+import type { AppStatusReport, ClusterTransport, EventSignatures, LocalBroker } from '@rocket.chat/core-services';
+import { Apps, License, ServiceClassInternal, Settings } from '@rocket.chat/core-services';
 import type { IInstanceStatus } from '@rocket.chat/core-typings';
 import { InstanceStatus, defaultPingInterval, indexExpire } from '@rocket.chat/instance-status';
 import { InstanceStatus as InstanceStatusRaw } from '@rocket.chat/models';
@@ -12,7 +12,6 @@ import { ServiceBroker, Transporters, Serializers } from 'moleculer';
 import { getLogger } from './getLogger';
 import { getTransporter } from './getTransporter';
 import { SystemLogger } from '../../../../server/lib/logger/system';
-import { StreamerCentral } from '../../../../server/modules/streamer/streamer.module';
 import { AppsEngineNoNodesFoundError } from '../../../../server/services/apps-engine/service';
 import type { IInstanceService } from '../../sdk/types/IInstanceService';
 
@@ -21,19 +20,19 @@ const hostIP = process.env.INSTANCE_IP ? String(process.env.INSTANCE_IP).trim() 
 const { Base } = Serializers;
 
 class EJSONSerializer extends Base {
-	serialize(obj: any): Buffer {
+	override serialize(obj: any): Buffer {
 		return Buffer.from(EJSON.stringify(obj));
 	}
 
-	deserialize(buf: Buffer): any {
+	override deserialize(buf: Buffer): any {
 		return EJSON.parse(buf.toString());
 	}
 }
 
+type ClusterBroker = Pick<LocalBroker, 'setClusterTransport' | 'broadcastLocal'>;
+
 export class InstanceService extends ServiceClassInternal implements IInstanceService {
 	protected name = 'instance';
-
-	private broadcastStarted = false;
 
 	private transporter: Transporters.TCP | Transporters.NATS;
 
@@ -41,24 +40,27 @@ export class InstanceService extends ServiceClassInternal implements IInstanceSe
 
 	private troubleshootDisableInstanceBroadcast = false;
 
-	constructor() {
+	private readonly clusterTransport: ClusterTransport = {
+		publish: (event, args) => {
+			if (this.troubleshootDisableInstanceBroadcast) {
+				return;
+			}
+
+			void this.broker.broadcast('event', { event, args });
+		},
+	};
+
+	constructor(private readonly localBroker: ClusterBroker) {
 		super();
 
-		this.onEvent('license.module', async ({ module, valid }) => {
+		this.onEvent('license.module', ({ module, valid }) => {
 			if (module === 'scalability' && valid) {
-				await this.startBroadcast();
+				this.startBroadcast();
 			}
 		});
 
-		this.onEvent('watch.settings', async ({ clientAction, setting }): Promise<void> => {
-			if (clientAction === 'removed') {
-				return;
-			}
-
-			const { _id, value } = setting;
-			if (_id !== 'Troubleshoot_Disable_Instance_Broadcast') {
-				return;
-			}
+		this.onSettingChanged('Troubleshoot_Disable_Instance_Broadcast', async ({ setting }): Promise<void> => {
+			const { value } = setting;
 
 			if (typeof value !== 'boolean') {
 				return;
@@ -72,7 +74,7 @@ export class InstanceService extends ServiceClassInternal implements IInstanceSe
 		});
 	}
 
-	async created() {
+	override async created() {
 		const transporter = getTransporter({
 			transporter: process.env.TRANSPORTER,
 			port: process.env.TCP_PORT,
@@ -92,30 +94,19 @@ export class InstanceService extends ServiceClassInternal implements IInstanceSe
 			...getLogger(process.env),
 		});
 
+		const { localBroker } = this;
+
 		this.broker.createService({
 			name: 'matrix',
 			events: {
-				broadcast(ctx: any) {
-					const { eventName, streamName, args } = ctx.params;
-					const { nodeID } = ctx;
+				event(ctx: any) {
+					const { event, args } = ctx.params as { event: keyof EventSignatures; args: unknown[] };
 
-					const fromLocalNode = nodeID === InstanceStatus.id();
-					if (fromLocalNode) {
+					if (ctx.nodeID === InstanceStatus.id()) {
 						return;
 					}
 
-					const instance = StreamerCentral.instances[streamName];
-					if (!instance) {
-						// return 'stream-not-exists';
-						return;
-					}
-
-					if (instance.serverOnly) {
-						instance.__emit(eventName, ...args);
-					} else {
-						// @ts-expect-error not sure why it thinks _emit needs an extra argument
-						StreamerCentral.instances[streamName]._emit(eventName, args);
-					}
+					void localBroker.broadcastLocal(event, ...(args as Parameters<EventSignatures[typeof event]>));
 				},
 			},
 			actions: {
@@ -162,7 +153,7 @@ export class InstanceService extends ServiceClassInternal implements IInstanceSe
 		(this.broker.transit?.tx as any).nodes.nodes.delete(nodeId);
 	}
 
-	async started() {
+	override async started() {
 		await this.broker.start();
 
 		const instance = {
@@ -191,28 +182,16 @@ export class InstanceService extends ServiceClassInternal implements IInstanceSe
 				return;
 			}
 
-			await this.startBroadcast();
+			this.troubleshootDisableInstanceBroadcast = await Settings.get<boolean>('Troubleshoot_Disable_Instance_Broadcast');
+
+			this.startBroadcast();
 		} catch (error) {
 			console.error('Instance service did not start correctly', error);
 		}
 	}
 
-	private async startBroadcast() {
-		if (this.broadcastStarted) {
-			return;
-		}
-
-		this.broadcastStarted = true;
-
-		StreamerCentral.on('broadcast', this.sendBroadcast.bind(this));
-	}
-
-	private sendBroadcast(streamName: string, eventName: string, args: unknown[]) {
-		if (this.troubleshootDisableInstanceBroadcast) {
-			return;
-		}
-
-		void this.broker.broadcast('broadcast', { streamName, eventName, args });
+	private startBroadcast() {
+		this.localBroker.setClusterTransport(this.clusterTransport);
 	}
 
 	async getInstances(): Promise<BrokerNode[]> {

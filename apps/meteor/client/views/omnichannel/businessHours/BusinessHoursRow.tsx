@@ -1,13 +1,12 @@
 import type { ILivechatBusinessHour, Serialized } from '@rocket.chat/core-typings';
 import { IconButton } from '@rocket.chat/fuselage';
-import type { TranslationKey } from '@rocket.chat/ui-contexts';
+import { GenericTableRow, GenericTableCell } from '@rocket.chat/ui-client';
 import { useRouter } from '@rocket.chat/ui-contexts';
 import type { KeyboardEvent } from 'react';
 import { memo, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useRemoveBusinessHour } from './useRemoveBusinessHour';
-import { GenericTableRow, GenericTableCell } from '../../../components/GenericTable';
 
 const BusinessHoursRow = ({ _id, name, timezone, workHours, active, type }: Serialized<ILivechatBusinessHour>) => {
 	const { t } = useTranslation();
@@ -27,16 +26,16 @@ const BusinessHoursRow = ({ _id, name, timezone, workHours, active, type }: Seri
 	const openDays = useMemo(() => workHours.filter(({ open }) => !!open).map(({ day }) => day), [workHours]);
 
 	return (
-		<GenericTableRow key={_id} role='link' action tabIndex={0} onClick={handleClick} onKeyDown={handleKeyDown}>
-			<GenericTableCell withTruncatedText>{name || t('Default')}</GenericTableCell>
-			<GenericTableCell withTruncatedText>{t(timezone.name as TranslationKey)}</GenericTableCell>
-			<GenericTableCell withTruncatedText>{openDays.join(', ')}</GenericTableCell>
-			<GenericTableCell withTruncatedText>{active ? t('Yes') : t('No')}</GenericTableCell>
-			<GenericTableCell withTruncatedText>
+		<GenericTableRow key={_id} action tabIndex={0} onClick={handleClick} onKeyDown={handleKeyDown}>
+			<GenericTableCell truncate>{name || t('Default')}</GenericTableCell>
+			<GenericTableCell truncate>{t(timezone.name)}</GenericTableCell>
+			<GenericTableCell truncate>{openDays.join(', ')}</GenericTableCell>
+			<GenericTableCell truncate>{active ? t('Yes') : t('No')}</GenericTableCell>
+			<GenericTableCell truncate>
 				{name && (
 					<IconButton
 						icon='trash'
-						small
+						size='small'
 						title={t('Remove')}
 						onClick={(e) => {
 							e.stopPropagation();

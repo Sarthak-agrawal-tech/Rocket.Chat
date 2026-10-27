@@ -1,17 +1,24 @@
 import type { IRoom, IUser } from '@rocket.chat/core-typings';
 import { isRoomFederated, isDirectMessageRoom, isTeamRoom, isRoomNativeFederated } from '@rocket.chat/core-typings';
-import { useEffectEvent, useDebouncedValue, useLocalStorage } from '@rocket.chat/fuselage-hooks';
-import { useUserRoom, useAtLeastOnePermission, useUser, usePermission, useUserSubscription } from '@rocket.chat/ui-contexts';
-import type { ChangeEvent, MouseEvent, ReactElement } from 'react';
+import { useStableCallback, useDebouncedValue, useLocalStorage } from '@rocket.chat/fuselage-hooks';
+import {
+	useUserRoom,
+	useAtLeastOnePermission,
+	useUser,
+	usePermission,
+	useUserSubscription,
+	useRoomToolbox,
+} from '@rocket.chat/ui-contexts';
+import type { ChangeEvent, MouseEvent } from 'react';
 import { useCallback, useMemo, useState } from 'react';
 
-import * as Federation from '../../../../lib/federation/Federation';
-import { useMembersList } from '../../../hooks/useMembersList';
-import { useRoomToolbox } from '../../contexts/RoomToolboxContext';
-import UserInfoWithData from '../UserInfo';
 import AddUsers from './AddUsers';
 import InviteUsers from './InviteUsers';
 import RoomMembers from './RoomMembers';
+import * as Federation from '../../../../lib/federation/Federation';
+import { useMembersList } from '../../../hooks/useMembersList';
+import { useIsRoomAbacLocked } from '../../hooks/useIsRoomAbacLocked';
+import UserInfoWithData from '../UserInfo';
 
 enum ROOM_MEMBERS_TABS {
 	INFO = 'user-info',
@@ -22,7 +29,9 @@ enum ROOM_MEMBERS_TABS {
 
 type validRoomType = 'd' | 'p' | 'c';
 
-const RoomMembersWithData = ({ rid }: { rid: IRoom['_id'] }): ReactElement => {
+export type RoomMembersWithDataProps = { rid: IRoom['_id'] };
+
+const RoomMembersWithData = ({ rid }: RoomMembersWithDataProps) => {
 	const user = useUser();
 	const room = useUserRoom(rid);
 	const { closeTab } = useRoomToolbox();
@@ -36,20 +45,21 @@ const RoomMembersWithData = ({ rid }: { rid: IRoom['_id'] }): ReactElement => {
 	const isFederated = room && isRoomFederated(room);
 	// we are dropping the non native federation for now
 	const isFederationBlocked = room && !isRoomNativeFederated(room);
+	const isAbacLocked = useIsRoomAbacLocked(rid, room);
 
 	const canCreateInviteLinks =
 		room && user && isFederated && !isFederationBlocked
 			? Federation.canCreateInviteLinks(user, room, subscription)
 			: hasPermissionToCreateInviteLinks;
 
-	const [state, setState] = useState<{ tab: ROOM_MEMBERS_TABS; userId?: IUser['_id'] }>({
+	const [state, setState] = useState<{ tab: ROOM_MEMBERS_TABS; user?: { id?: IUser['_id']; invitationDate?: string } }>({
 		tab: ROOM_MEMBERS_TABS.LIST,
-		userId: undefined,
+		user: undefined,
 	});
 
 	const debouncedText = useDebouncedValue(text, 800);
 
-	const { data, fetchNextPage, isPending, refetch, hasNextPage } = useMembersList(
+	const { data, fetchNextPage, isPending, isSuccess, refetch, hasNextPage } = useMembersList(
 		useMemo(() => ({ rid, type, limit: 20, debouncedText, roomType: room?.t as validRoomType }), [rid, type, debouncedText, room?.t]),
 	);
 
@@ -67,28 +77,36 @@ const RoomMembersWithData = ({ rid }: { rid: IRoom['_id'] }): ReactElement => {
 		setText(event.currentTarget.value);
 	}, []);
 
-	const openUserInfo = useEffectEvent((e: MouseEvent<HTMLElement>) => {
-		const { userid } = e.currentTarget.dataset;
+	const openUserInfo = useStableCallback((e: MouseEvent<HTMLElement>) => {
+		const { userid: userId, invitationdate: invitationDate } = e.currentTarget.dataset;
 		setState({
 			tab: ROOM_MEMBERS_TABS.INFO,
-			userId: userid,
+			user: { id: userId, invitationDate },
 		});
 	});
 
-	const openInvite = useEffectEvent(() => {
+	const openInvite = useStableCallback(() => {
 		setState({ tab: ROOM_MEMBERS_TABS.INVITE });
 	});
 
-	const openAddUser = useEffectEvent(() => {
+	const openAddUser = useStableCallback(() => {
 		setState({ tab: ROOM_MEMBERS_TABS.ADD });
 	});
 
-	const handleBack = useEffectEvent(() => {
+	const handleBack = useStableCallback(() => {
 		setState({ tab: ROOM_MEMBERS_TABS.LIST });
 	});
 
-	if (state.tab === ROOM_MEMBERS_TABS.INFO && state.userId) {
-		return <UserInfoWithData rid={rid} uid={state.userId} onClose={closeTab} onClickBack={handleBack} />;
+	if (state.tab === ROOM_MEMBERS_TABS.INFO && state.user?.id) {
+		return (
+			<UserInfoWithData
+				rid={rid}
+				uid={state.user.id}
+				invitationDate={state.user.invitationDate}
+				onClose={closeTab}
+				onClickBack={handleBack}
+			/>
+		);
 	}
 
 	if (state.tab === ROOM_MEMBERS_TABS.INVITE) {
@@ -104,7 +122,8 @@ const RoomMembersWithData = ({ rid }: { rid: IRoom['_id'] }): ReactElement => {
 			rid={rid}
 			isTeam={isTeam}
 			isDirect={isDirect}
-			loading={isPending}
+			isPending={isPending}
+			isSuccess={isSuccess}
 			type={type}
 			text={text}
 			setText={handleTextChange}
@@ -117,8 +136,8 @@ const RoomMembersWithData = ({ rid }: { rid: IRoom['_id'] }): ReactElement => {
 			reload={refetch}
 			onClickInvite={canCreateInviteLinks && canAddUsers ? openInvite : undefined}
 			onClickAdd={canAddUsers ? openAddUser : undefined}
-			// @ts-expect-error to be implemented in ABAC Feature branch
 			isABACRoom={Boolean(room?.abacAttributes)}
+			isAbacLocked={isAbacLocked}
 		/>
 	);
 };

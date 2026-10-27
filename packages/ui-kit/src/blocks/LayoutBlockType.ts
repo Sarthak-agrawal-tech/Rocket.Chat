@@ -1,14 +1,21 @@
-export enum LayoutBlockType {
-	SECTION = 'section',
-	DIVIDER = 'divider',
-	IMAGE = 'image',
-	ACTIONS = 'actions',
-	CONTEXT = 'context',
-	INPUT = 'input',
-	CONDITIONAL = 'conditional',
-	PREVIEW = 'preview',
-	VIDEO_CONF = 'video_conf',
-	CALLOUT = 'callout',
-	TAB_NAVIGATION = 'tab_navigation',
-	INFO_CARD = 'info_card',
-}
+import type { LayoutBlock } from './LayoutBlock';
+
+export const LayoutBlockType = {
+	SECTION: 'section',
+	DIVIDER: 'divider',
+	HEADER: 'header',
+	IMAGE: 'image',
+	ACTIONS: 'actions',
+	CONTEXT: 'context',
+	INPUT: 'input',
+	MARKDOWN: 'markdown',
+	CONDITIONAL: 'conditional',
+	PREVIEW: 'preview',
+	VIDEO_CONF: 'video_conf',
+	CALLOUT: 'callout',
+	TAB_NAVIGATION: 'tab_navigation',
+	INFO_CARD: 'info_card',
+	CONTEXT_ACTIONS: 'context_actions',
+	VIDEO: 'video',
+	TABLE: 'table',
+} as const satisfies Record<Uppercase<LayoutBlock['type']>, LayoutBlock['type']>;

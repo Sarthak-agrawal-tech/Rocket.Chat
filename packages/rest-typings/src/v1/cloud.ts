@@ -1,9 +1,6 @@
 import type { CloudRegistrationIntentData, CloudConfirmationPollData, CloudRegistrationStatus } from '@rocket.chat/core-typings';
-import Ajv from 'ajv';
 
-const ajv = new Ajv({
-	coerceTypes: true,
-});
+import { ajv, ajvQuery } from './Ajv';
 
 type CloudManualRegister = {
 	cloudBlob: string;
@@ -60,7 +57,23 @@ const CloudConfirmationPollSchema = {
 	additionalProperties: false,
 };
 
-export const isCloudConfirmationPollProps = ajv.compile<CloudConfirmationPoll>(CloudConfirmationPollSchema);
+export const isCloudConfirmationPollProps = ajvQuery.compile<CloudConfirmationPoll>(CloudConfirmationPollSchema);
+
+type CloudConnectWorkspace = { token: string };
+
+const CloudConnectWorkspaceSchema = {
+	type: 'object',
+	properties: {
+		token: {
+			type: 'string',
+			minLength: 1,
+		},
+	},
+	required: ['token'],
+	additionalProperties: false,
+};
+
+export const isCloudConnectWorkspaceProps = ajv.compile<CloudConnectWorkspace>(CloudConnectWorkspaceSchema);
 
 export type CloudEndpoints = {
 	'/v1/cloud.manualRegister': {
@@ -84,10 +97,16 @@ export type CloudEndpoints = {
 	'/v1/cloud.registrationStatus': {
 		GET: () => { registrationStatus: CloudRegistrationStatus };
 	};
+	'/v1/cloud.workspaceRegisterData': {
+		GET: () => { registerData: string };
+	};
 	'/v1/cloud.syncWorkspace': {
 		POST: () => { success: boolean };
 	};
 	'/v1/cloud.removeLicense': {
 		POST: () => { success: boolean };
+	};
+	'/v1/cloud.connectWorkspace': {
+		POST: (params: CloudConnectWorkspace) => { success: boolean };
 	};
 };

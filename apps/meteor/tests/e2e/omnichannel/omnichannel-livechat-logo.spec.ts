@@ -1,7 +1,7 @@
 import { IS_EE } from '../config/constants';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { OmnichannelLiveChat, OmnichannelSettings } from '../page-objects';
+import { OmnichannelLiveChat, OmnichannelSettings } from '../page-objects/omnichannel';
 import { test, expect } from '../utils/test';
 
 test.skip(!IS_EE, 'Enterprise Only');
@@ -25,7 +25,7 @@ test.describe('OC - Livechat - Widget logo', async () => {
 	test.beforeEach(async ({ page }) => {
 		poOmnichannelSettings = new OmnichannelSettings(page);
 
-		await page.goto('/admin/settings/Omnichannel');
+		await poOmnichannelSettings.goto();
 	});
 
 	test.afterAll(async ({ api }) => {

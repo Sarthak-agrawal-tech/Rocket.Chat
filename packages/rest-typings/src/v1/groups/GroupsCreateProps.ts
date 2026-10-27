@@ -1,8 +1,6 @@
-import Ajv from 'ajv/dist/2019';
-
-const ajv = new Ajv({
-	coerceTypes: true,
-});
+import { ajv } from '../Ajv';
+import type { AbacCreationAttributes } from '../abacCreationAttributes';
+import { abacCreationAttributesSchema } from '../abacCreationAttributes';
 
 export type GroupsCreateProps = {
 	name: string;
@@ -13,8 +11,12 @@ export type GroupsCreateProps = {
 		broadcast: boolean;
 		encrypted: boolean;
 		teamId?: string;
+		federated?: boolean;
+		topic?: string;
+		xmppFederated?: boolean;
 	};
 	excludeSelf?: boolean;
+	abacAttributes?: AbacCreationAttributes;
 };
 
 const GroupsCreatePropsSchema = {
@@ -32,10 +34,15 @@ const GroupsCreatePropsSchema = {
 			type: 'boolean',
 			nullable: true,
 		},
+		excludeSelf: {
+			type: 'boolean',
+			nullable: true,
+		},
 		customFields: {
 			type: 'object',
 			nullable: true,
 		},
+		abacAttributes: abacCreationAttributesSchema,
 		extraData: {
 			type: 'object',
 			properties: {
@@ -57,8 +64,12 @@ const GroupsCreatePropsSchema = {
 					type: 'string',
 					nullable: true,
 				},
+				xmppFederated: {
+					type: 'boolean',
+					nullable: true,
+				},
 			},
-			dependentSchemas: {
+			dependencies: {
 				extraData: { required: ['broadcast', 'encrypted'] },
 			},
 			additionalProperties: false,

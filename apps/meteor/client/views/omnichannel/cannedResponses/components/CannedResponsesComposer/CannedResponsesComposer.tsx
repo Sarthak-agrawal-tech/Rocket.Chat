@@ -1,4 +1,4 @@
-import { Button, PositionAnimated, Tile } from '@rocket.chat/fuselage';
+import { Box, Button, PopoverSurface, PositionAnimated } from '@rocket.chat/fuselage';
 import {
 	MessageComposerAction,
 	MessageComposerToolbarActions,
@@ -8,15 +8,20 @@ import {
 	MessageComposerActionsDivider,
 } from '@rocket.chat/ui-composer';
 import { useUserPreference } from '@rocket.chat/ui-contexts';
-import type { ComponentProps } from 'react';
+import type { ComponentProps, ChangeEvent } from 'react';
 import { memo, useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import InsertPlaceholderDropdown from './InsertPlaceholderDropdown';
 import { Backdrop } from '../../../../../components/Backdrop';
 import { useEmojiPicker } from '../../../../../contexts/EmojiPickerContext';
+import { emoji } from '../../../../../lib/emoji';
 
-const CannedResponsesComposer = ({ onChange, ...props }: ComponentProps<typeof MessageComposerInput>) => {
+export type CannedResponsesComposerProps = Omit<ComponentProps<typeof MessageComposerInput>, 'onChange'> & {
+	onChange: (value: string) => void;
+};
+
+const CannedResponsesComposer = ({ onChange, ...props }: CannedResponsesComposerProps) => {
 	const { t } = useTranslation();
 	const useEmojisPreference = useUserPreference('useEmojis');
 
@@ -53,22 +58,23 @@ const CannedResponsesComposer = ({ onChange, ...props }: ComponentProps<typeof M
 					textAreaRef.current.setSelectionRange(startPos + 1, endPos + 1);
 				}
 
-				onChange?.(textAreaRef.current.value as any);
+				onChange?.(textAreaRef.current.value);
 			}
 		}, [char]);
 
-	const onClickEmoji = (emoji: string): void => {
+	const onClickEmoji = (emojiName: string): void => {
 		if (textAreaRef?.current) {
 			const text = textAreaRef.current.value;
 			const startPos = textAreaRef.current.selectionStart;
-			const emojiValue = `:${emoji}: `;
+			const emojiEntry = emoji.list[`:${emojiName}:`];
+			const emojiValue = emojiEntry && 'unicode' in emojiEntry && emojiEntry.unicode ? `${emojiEntry.unicode} ` : `:${emojiName}: `;
 
 			textAreaRef.current.value = text.slice(0, startPos) + emojiValue + text.slice(startPos);
 
 			textAreaRef.current.focus();
 			textAreaRef.current.setSelectionRange(startPos + emojiValue.length, startPos + emojiValue.length);
 
-			onChange?.(textAreaRef.current.value as any);
+			onChange?.(textAreaRef.current.value);
 		}
 	};
 
@@ -81,7 +87,7 @@ const CannedResponsesComposer = ({ onChange, ...props }: ComponentProps<typeof M
 			throw new Error('Missing textAreaRef');
 		}
 
-		openEmojiPicker(textAreaRef.current, (emoji: string) => onClickEmoji(emoji));
+		openEmojiPicker(textAreaRef.current, (emojiName: string) => onClickEmoji(emojiName));
 	};
 
 	const openPlaceholderSelect = (): void => {
@@ -91,7 +97,12 @@ const CannedResponsesComposer = ({ onChange, ...props }: ComponentProps<typeof M
 
 	return (
 		<MessageComposer>
-			<MessageComposerInput ref={textAreaRef} rows={10} onChange={onChange} {...props} />
+			<MessageComposerInput
+				ref={textAreaRef}
+				rows={10}
+				onChange={(e: ChangeEvent<HTMLTextAreaElement>): void => onChange(e.target.value)}
+				{...props}
+			/>
 			<MessageComposerToolbar>
 				<MessageComposerToolbarActions aria-label={t('Message_composer_toolbox_primary_actions')}>
 					<MessageComposerAction icon='emoji' disabled={!useEmojisPreference} onClick={handleOpenEmojiPicker} title={t('Emoji')} />
@@ -101,20 +112,25 @@ const CannedResponsesComposer = ({ onChange, ...props }: ComponentProps<typeof M
 					<MessageComposerAction icon='strike' onClick={useMarkdownSyntax('~')} title={t('Strikethrough')} />
 					<MessageComposerAction icon='link' onClick={useMarkdownSyntax('[]()')} title={t('Link')} />
 					<MessageComposerActionsDivider />
-					<Button ref={ref} small onClick={openPlaceholderSelect}>
+					<Button ref={ref} size='small' onClick={openPlaceholderSelect}>
 						{t('Insert_Placeholder')}
 					</Button>
-					<Backdrop
-						display={visible ? 'block' : 'none'}
-						onClick={(): void => {
-							textAreaRef?.current && textAreaRef.current.focus();
-							setVisible(false);
-						}}
-					/>
+					{visible && (
+						<Backdrop
+							onClick={(): void => {
+								textAreaRef?.current && textAreaRef.current.focus();
+								setVisible(false);
+							}}
+						/>
+					)}
 					<PositionAnimated visible={visible ? 'visible' : 'hidden'} anchor={ref}>
-						<Tile elevation='1' w='224px'>
-							<InsertPlaceholderDropdown onChange={onChange} textAreaRef={textAreaRef} setVisible={setVisible} />
-						</Tile>
+						<Box width='224px'>
+							<PopoverSurface elevation='1' flush>
+								<Box padding={16}>
+									<InsertPlaceholderDropdown onChange={onChange} textAreaRef={textAreaRef} setVisible={setVisible} />
+								</Box>
+							</PopoverSurface>
+						</Box>
 					</PositionAnimated>
 				</MessageComposerToolbarActions>
 			</MessageComposerToolbar>

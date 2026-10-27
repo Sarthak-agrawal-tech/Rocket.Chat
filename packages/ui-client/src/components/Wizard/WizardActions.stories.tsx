@@ -1,6 +1,5 @@
 import { Box } from '@rocket.chat/fuselage';
-import type { Meta, StoryFn } from '@storybook/react';
-import { ComponentProps } from 'react';
+import type { Meta, StoryObj } from '@storybook/react';
 
 import Wizard from './Wizard';
 import WizardActions from './WizardActions';
@@ -9,7 +8,6 @@ import WizardNextButton from './WizardNextButton';
 import { useWizard } from './useWizard';
 
 export default {
-	title: 'Components/Wizard/WizardActions',
 	component: WizardActions,
 	decorators: (Story) => {
 		const wizardApi = useWizard({
@@ -31,19 +29,20 @@ export default {
 	parameters: {
 		layout: 'centered',
 	},
+	render: (args) => (
+		<WizardActions {...args}>
+			<WizardBackButton />
+			<WizardNextButton />
+		</WizardActions>
+	),
 } satisfies Meta<typeof WizardActions>;
 
-const Template: StoryFn<ComponentProps<typeof WizardActions>> = (args) => (
-	<WizardActions {...args}>
-		<WizardBackButton />
-		<WizardNextButton />
-	</WizardActions>
-);
+export const Default: StoryObj<typeof WizardActions> = {
+	args: {},
+};
 
-export const Default = Template.bind({});
-Default.args = {};
-
-export const WithAnnotation = Template.bind({});
-WithAnnotation.args = {
-	annotation: 'This is a sample annotation',
+export const WithAnnotation: StoryObj<typeof WizardActions> = {
+	args: {
+		annotation: 'This is a sample annotation',
+	},
 };

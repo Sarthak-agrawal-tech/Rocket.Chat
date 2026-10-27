@@ -1,7 +1,7 @@
 import { faker } from '@faker-js/faker';
 
 import { Users } from './fixtures/userStates';
-import { AdminRooms, AdminSectionsHref } from './page-objects';
+import { AdminInfo, AdminRooms, AdminSectionsHref } from './page-objects';
 import { createTargetChannel, createTargetPrivateChannel } from './utils';
 import { expect, test } from './utils/test';
 
@@ -11,10 +11,11 @@ test.describe.serial('admin-rooms', () => {
 	let channel: string;
 	let privateRoom: string;
 	let adminRooms: AdminRooms;
+	let adminInfo: AdminInfo;
 
 	test.beforeEach(async ({ page }) => {
 		adminRooms = new AdminRooms(page);
-		await page.goto('/admin/rooms');
+		await adminRooms.goto();
 	});
 
 	test.beforeAll(async ({ api }) => {
@@ -22,7 +23,8 @@ test.describe.serial('admin-rooms', () => {
 	});
 
 	test('should display the Rooms Table', async ({ page }) => {
-		await expect(page.locator('[data-qa-type="PageHeader-title"]')).toContainText('Rooms');
+		await expect(page.getByRole('main').getByRole('heading', { level: 1, name: 'Rooms', exact: true })).toBeVisible();
+		await expect(page.getByRole('main').getByRole('table')).toBeVisible();
 	});
 
 	test('should filter room by name', async ({ page }) => {
@@ -43,7 +45,7 @@ test.describe.serial('admin-rooms', () => {
 		const selectedDropdown = await adminRooms.dropdownFilterRoomType('Rooms (1)');
 		await expect(selectedDropdown).toBeVisible();
 
-		await expect(page.locator('text=Private Channel').first()).toBeVisible();
+		await expect(page.locator('text=Private channel').first()).toBeVisible();
 	});
 
 	test('should filter rooms by type and name', async ({ page }) => {
@@ -71,16 +73,19 @@ test.describe.serial('admin-rooms', () => {
 	});
 
 	test('should filter rooms by type and name and clean the filter after changing section', async ({ page }) => {
+		adminInfo = new AdminInfo(page);
+
 		await adminRooms.inputSearchRooms.fill(privateRoom);
-		const dropdown = await adminRooms.dropdownFilterRoomType();
+		const dropdown = adminRooms.dropdownFilterRoomType();
 		await dropdown.click();
 
 		await page.locator('text=Private channels').click();
 
-		const workspaceButton = await adminRooms.adminSectionButton(AdminSectionsHref.Workspace);
+		const workspaceButton = await adminRooms.adminSectionButton(AdminSectionsHref.workspace);
 		await workspaceButton.click();
+		await expect(adminInfo.pageContent).toBeVisible();
 
-		const roomsButton = await adminRooms.adminSectionButton(AdminSectionsHref.Rooms);
+		const roomsButton = await adminRooms.adminSectionButton(AdminSectionsHref.rooms);
 		await roomsButton.click();
 
 		const selectDropdown = await adminRooms.dropdownFilterRoomType('All rooms');

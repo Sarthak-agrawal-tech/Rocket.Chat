@@ -1,5 +1,5 @@
 import type { ILoginResult } from '@rocket.chat/core-services';
-import { MeteorError } from '@rocket.chat/core-services';
+import { ClientSafeError } from '@rocket.chat/core-services';
 import type { IUser } from '@rocket.chat/core-typings';
 import { Users } from '@rocket.chat/models';
 
@@ -11,6 +11,7 @@ export async function loginViaResume(resume: string, loginExpiration: number): P
 	const user = await Users.findOne<IUser>(
 		{
 			'services.resume.loginTokens.hashedToken': hashedToken,
+			'active': true,
 		},
 		{
 			projection: {
@@ -26,7 +27,7 @@ export async function loginViaResume(resume: string, loginExpiration: number): P
 
 	const tokenExpires = token && 'when' in token && _tokenExpiration(token.when, loginExpiration);
 	if (tokenExpires && new Date() >= tokenExpires) {
-		throw new MeteorError(403, 'Your session has expired. Please log in again.');
+		throw new ClientSafeError(403, 'Your session has expired. Please log in again.');
 	}
 
 	return {

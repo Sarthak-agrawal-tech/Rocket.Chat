@@ -1,8 +1,9 @@
-import { isDirectMessageRoom } from '@rocket.chat/core-typings';
+import { type RoomType, isDirectMessageRoom } from '@rocket.chat/core-typings';
 import { AutoComplete, Box, Option, OptionAvatar, OptionContent, Chip } from '@rocket.chat/fuselage';
-import { useDebouncedValue } from '@rocket.chat/fuselage-hooks';
-import { escapeRegExp } from '@rocket.chat/string-helpers';
-import { RoomAvatar, UserAvatar } from '@rocket.chat/ui-avatar';
+import { useDebouncedValue, useStableArray } from '@rocket.chat/fuselage-hooks';
+import { escapeRegExp } from '@rocket.chat/tools';
+import { ITEM_MEDIA_SIZE, RoomAvatar } from '@rocket.chat/ui-avatar';
+import type { SubscriptionWithRoom } from '@rocket.chat/ui-contexts';
 import { useUser, useUserSubscriptions } from '@rocket.chat/ui-contexts';
 import type { ComponentProps } from 'react';
 import { memo, useMemo, useState } from 'react';
@@ -10,58 +11,90 @@ import { memo, useMemo, useState } from 'react';
 import { roomCoordinator } from '../../lib/rooms/roomCoordinator';
 import { Rooms } from '../../stores';
 
-type UserAndRoomAutoCompleteMultipleProps = Omit<ComponentProps<typeof AutoComplete>, 'filter'> & { limit?: number };
+export type UserAndRoomAutoCompleteMultipleProps = Omit<ComponentProps<typeof AutoComplete>, 'filter'> & {
+	limit?: number;
+	excludeTypes?: RoomType[];
+	allowReadOnly?: boolean;
+};
 
-const UserAndRoomAutoCompleteMultiple = ({ value, onChange, limit, ...props }: UserAndRoomAutoCompleteMultipleProps) => {
+type OptionType = {
+	value: string;
+	label: {
+		name: string | undefined;
+		avatarETag: string | undefined;
+		type: RoomType;
+	};
+}[];
+
+const toOption = (room: SubscriptionWithRoom) => ({
+	value: room.rid,
+	label: {
+		name: room.fname || room.name,
+		avatarETag: room.avatarETag,
+		type: room.t,
+	},
+});
+
+const UserAndRoomAutoCompleteMultiple = ({
+	value,
+	onChange,
+	limit,
+	excludeTypes,
+	allowReadOnly = false,
+	...props
+}: UserAndRoomAutoCompleteMultipleProps) => {
 	const user = useUser();
 	const [filter, setFilter] = useState('');
 	const debouncedFilter = useDebouncedValue(filter, 1000);
+	const selectedIds = useStableArray(Array.isArray(value) ? value : []);
+
+	const filterConditions = useMemo(
+		() => [
+			{ lowerCaseFName: new RegExp(escapeRegExp(debouncedFilter), 'i') },
+			{ lowerCaseName: new RegExp(escapeRegExp(debouncedFilter), 'i') },
+		],
+		[debouncedFilter],
+	);
+
+	const selectedRooms = useUserSubscriptions(
+		useMemo(() => ({ rid: { $in: selectedIds }, $or: filterConditions }), [filterConditions, selectedIds]),
+	);
 
 	const rooms = useUserSubscriptions(
 		...useMemo<Parameters<typeof useUserSubscriptions>>(
 			() => [
 				{
 					open: { $ne: false },
-					$or: [
-						{ lowerCaseFName: new RegExp(escapeRegExp(debouncedFilter), 'i') },
-						{ lowerCaseName: new RegExp(escapeRegExp(debouncedFilter), 'i') },
-					],
+					rid: { $nin: selectedIds },
+					$or: filterConditions,
 				},
 				// We are using a higher limit here to take advantage of the amount that
 				// will be filtered below into a smaller set respecting the limit prop.
 				{ limit: 100 },
 			],
-			[debouncedFilter],
+			[filterConditions, selectedIds],
 		),
 	);
 
 	const options = useMemo(() => {
-		if (!user) {
-			return [];
-		}
-
-		return rooms.reduce<Exclude<UserAndRoomAutoCompleteMultipleProps['options'], undefined>>((acc, room) => {
+		const searchOptions = rooms.reduce<OptionType>((acc, room) => {
 			if (acc.length === limit) return acc;
+
+			if (excludeTypes?.includes(room.t)) return acc;
 
 			if (isDirectMessageRoom(room) && (room.blocked || room.blocker)) {
 				return acc;
 			}
 
-			if (roomCoordinator.readOnly(Rooms.state.get(room.rid), user)) return acc;
+			if (!allowReadOnly && roomCoordinator.readOnly(Rooms.state.get(room.rid), user)) return acc;
 
-			return [
-				...acc,
-				{
-					value: room.rid,
-					label: {
-						name: room.fname || room.name,
-						avatarETag: room.avatarETag,
-						type: room.t,
-					},
-				},
-			];
+			return [...acc, toOption(room)];
 		}, []);
-	}, [limit, rooms, user]);
+
+		if (!selectedIds.length) return searchOptions;
+
+		return [...searchOptions, ...selectedRooms.map(toOption)];
+	}, [allowReadOnly, excludeTypes, limit, rooms, selectedIds, selectedRooms, user]);
 
 	return (
 		<AutoComplete
@@ -72,13 +105,9 @@ const UserAndRoomAutoCompleteMultiple = ({ value, onChange, limit, ...props }: U
 			setFilter={setFilter}
 			multiple
 			renderSelected={({ selected: { value, label }, onRemove, ...props }) => (
-				<Chip {...props} height='x20' value={value} onClick={onRemove} mie={4}>
-					{label.t === 'd' ? (
-						<UserAvatar size='x20' username={value} />
-					) : (
-						<RoomAvatar size='x20' room={{ type: label?.type, _id: value, ...label }} />
-					)}
-					<Box is='span' margin='none' mis={4}>
+				<Chip {...props} value={value} onClick={onRemove}>
+					<RoomAvatar size='x20' room={{ ...label, _id: value }} />
+					<Box is='span' margin='none' marginInlineStart={4}>
 						{label.name}
 					</Box>
 				</Chip>
@@ -86,11 +115,7 @@ const UserAndRoomAutoCompleteMultiple = ({ value, onChange, limit, ...props }: U
 			renderItem={({ value, label, ...props }) => (
 				<Option key={value} {...props}>
 					<OptionAvatar>
-						{label.t === 'd' ? (
-							<UserAvatar size='x20' username={value} />
-						) : (
-							<RoomAvatar size='x20' room={{ type: label?.type, _id: value, ...label }} />
-						)}
+						<RoomAvatar size={ITEM_MEDIA_SIZE.condensed} room={{ ...label, _id: value }} />
 					</OptionAvatar>
 					<OptionContent>{label.name}</OptionContent>
 				</Option>

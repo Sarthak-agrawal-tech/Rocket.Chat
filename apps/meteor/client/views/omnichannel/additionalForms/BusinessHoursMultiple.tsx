@@ -8,13 +8,15 @@ import { useHasLicenseModule } from '../../../hooks/useHasLicenseModule';
 import type { BusinessHoursFormData } from '../businessHours/BusinessHoursForm';
 import AutoCompleteDepartmentMultiple from '../components/AutoCompleteDepartmentMultiple';
 
-const BusinessHoursMultiple = ({ className }: { className?: ComponentProps<typeof Field>['className'] }) => {
+export type BusinessHoursMultipleProps = { className?: ComponentProps<typeof Field>['className'] };
+
+const BusinessHoursMultiple = ({ className }: BusinessHoursMultipleProps) => {
 	const { t } = useTranslation();
 	const {
 		control,
 		formState: { errors },
 	} = useFormContext<BusinessHoursFormData>();
-	const hasLicense = useHasLicenseModule('livechat-enterprise');
+	const { data: hasLicense = false } = useHasLicenseModule('livechat-enterprise');
 
 	const enabledField = useId();
 	const nameField = useId();

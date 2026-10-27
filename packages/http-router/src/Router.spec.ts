@@ -446,7 +446,7 @@ describe('Router', () => {
 	});
 
 	describe('Content types', () => {
-		it('should handle different content types for requests', async () => {
+		it('should not auto-parse multipart/form-data and provide raw request for manual parsing', async () => {
 			const app = express();
 			const api = new Router('/api');
 
@@ -458,12 +458,18 @@ describe('Router', () => {
 					},
 				},
 				async (c) => {
-					const formData = await c.req.formData();
-					const name = formData.get('name');
+					// For multipart/form-data, routes use c.env.incoming for manual parsing
+					// In production, routes call UploadService.parse(c.env.incoming)
+					const hasIncoming = !!c.env.incoming;
+					const contentType = c.env.incoming?.headers['content-type'];
+					const isMultipart = contentType?.includes('multipart/form-data');
 
 					return {
 						statusCode: 200,
-						body: { received: { name } },
+						body: {
+							receivedRawRequest: hasIncoming,
+							receivedIncoming: isMultipart,
+						},
 					};
 				},
 			);
@@ -473,7 +479,10 @@ describe('Router', () => {
 			const response = await request(app).post('/api/form-data').field('name', 'Test User');
 
 			expect(response.status).toBe(200);
-			expect(response.body).toEqual({ received: { name: 'Test User' } });
+			expect(response.body).toEqual({
+				receivedRawRequest: true,
+				receivedIncoming: true,
+			});
 		});
 
 		it('should set custom response headers', async () => {
@@ -616,7 +625,7 @@ describe('Router', () => {
 		expect(response.statusCode).toBe(400);
 		expect(response.body).toHaveProperty(
 			'error',
-			'Invalid response for endpoint GET - http://localhost/api/test. Error: must NOT have additional properties (additionalProperty: asda)',
+			"Invalid response for endpoint GET - http://localhost/api/test. Error: at path '(root)': must NOT have additional properties (additionalProperty: asda)",
 		);
 	});
 
@@ -742,5 +751,35 @@ describe('Router', () => {
 		const response = await request(app).put('/api/test').send({});
 		expect(response.statusCode).toBe(400);
 		expect(response.body).toHaveProperty('error', "must have required property 'customProperty'");
+	});
+	describe('OpenAPI registration', () => {
+		it('should register documented routes under their openapi path', () => {
+			const api = new Router('/api');
+			const inner = new Router('/v1');
+
+			inner.get(
+				'banners/:id',
+				{
+					authRequired: true,
+					summary: 'Get a banner by id',
+					tags: ['Banners'],
+					query: ajv.compile({ type: 'object', properties: { platform: { type: 'string' } }, required: ['platform'] }),
+					response: { 200: dummyValidator },
+				},
+				async () => ({ statusCode: 200, body: { success: true } }),
+			);
+
+			api.use(inner);
+
+			const operation = api.typedRoutes['/api/v1/banners/{id}'].get;
+
+			expect(operation.summary).toBe('Get a banner by id');
+			expect(operation.parameters).toEqual([
+				{ name: 'id', in: 'path', required: true, schema: { type: 'string' } },
+				{ name: 'platform', in: 'query', required: true, schema: { type: 'string' } },
+			]);
+			expect(operation.responses[200].description).toBeTruthy();
+			expect(operation.security).toEqual([{ userId: [], authToken: [] }]);
+		});
 	});
 });

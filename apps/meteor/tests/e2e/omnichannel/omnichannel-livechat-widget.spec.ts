@@ -1,6 +1,6 @@
 import type { Page } from '@playwright/test';
 
-import { OmnichannelLiveChatEmbedded } from '../page-objects';
+import { OmnichannelLiveChatEmbedded } from '../page-objects/omnichannel';
 import { test, expect } from '../utils/test';
 
 test.describe('Omnichannel - Livechat Widget Embedded', () => {
@@ -12,7 +12,7 @@ test.describe('Omnichannel - Livechat Widget Embedded', () => {
 			page = await browser.newPage();
 			poLiveChat = new OmnichannelLiveChatEmbedded(page);
 
-			await page.goto('/packages/rocketchat_livechat/assets/demo.html');
+			await poLiveChat.goto();
 		});
 
 		test.afterAll(async () => {

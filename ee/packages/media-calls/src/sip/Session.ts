@@ -1,4 +1,4 @@
-import type { Socket } from 'net';
+import type { Socket } from 'node:net';
 
 import type { IMediaCall, MediaCallContact } from '@rocket.chat/core-typings';
 import type { ClientMediaSignalBody } from '@rocket.chat/media-signaling';
@@ -12,6 +12,7 @@ import { IncomingSipCall } from './providers/IncomingSipCall';
 import { OutgoingSipCall } from './providers/OutgoingSipCall';
 import type { IMediaCallServerSettings } from '../definition/IMediaCallServer';
 import type { InternalCallParams } from '../definition/common';
+import { mediaCallDirector } from '../server/CallDirector';
 import { getDefaultSettings } from '../server/getDefaultSettings';
 
 export class SipServerSession {
@@ -47,8 +48,8 @@ export class SipServerSession {
 			return;
 		}
 
-		sipCall.reactToCallChanges(otherParams).catch((error) => {
-			logger.error({ msg: 'Failed to react to call changes', error, call: sipCall.call, otherParams });
+		sipCall.reactToCallChanges(otherParams).catch((err) => {
+			logger.error({ msg: 'Failed to react to call changes', err, call: sipCall.call, otherParams });
 		});
 	}
 
@@ -109,6 +110,37 @@ export class SipServerSession {
 		return `sip:${extension}@${host}${portStr}`;
 	}
 
+	public async sendReferRequest(
+		sipDialog: Srf.Dialog,
+		params: { transferredTo?: MediaCallContact; transferredBy?: MediaCallContact },
+	): Promise<void> {
+		const { transferredBy, transferredTo } = params;
+		if (!transferredTo) {
+			throw new Error('Missing refer destination');
+		}
+
+		// Sip targets can only be referred to other sip users
+		const referToActor = await mediaCallDirector.cast.getContactForActor(transferredTo, { requiredType: 'sip' });
+		const referredBy = transferredBy && this.geContactUri(transferredBy);
+
+		const referTo = referToActor && this.geContactUri(referToActor);
+		if (!referTo) {
+			throw new Error('invalid-transfer');
+		}
+
+		const res = await sipDialog.request({
+			method: 'REFER',
+			headers: {
+				'Refer-To': referTo,
+				...(referredBy && { 'Referred-By': referredBy }),
+			},
+		});
+
+		if (res.status === 202) {
+			logger.debug({ msg: 'REFER was accepted', method: 'SipServerSession.sendReferRequest', ...params });
+		}
+	}
+
 	public stripDrachtioServerDetails(reqOrRes: Srf.SipMessage): Record<string, any> {
 		const { _agent, socket: _socket, _req, _res, ...data } = reqOrRes as Record<string, any>;
 
@@ -116,7 +148,7 @@ export class SipServerSession {
 	}
 
 	private isEnabledOnSettings(settings: IMediaCallServerSettings): boolean {
-		return Boolean(settings.enabled && settings.sip.enabled && settings.sip.drachtio.host && settings.sip.drachtio.secret);
+		return Boolean(settings.sip.enabled && settings.sip.drachtio.host && settings.sip.drachtio.secret);
 	}
 
 	private initializeDrachtio(): void {
@@ -140,8 +172,8 @@ export class SipServerSession {
 		this.srf.invite((req, res) => {
 			logger.debug('Received a call on drachtio.');
 
-			void this.processInvite(req, res).catch((error) => {
-				logger.error({ msg: 'Error processing Drachtio Invite', error });
+			void this.processInvite(req, res).catch((err) => {
+				logger.error({ msg: 'Error processing Drachtio Invite', err });
 			});
 		});
 	}
@@ -156,7 +188,7 @@ export class SipServerSession {
 		logger.info({ msg: 'Connecting to drachtio', host, port });
 
 		this.wasEverEnabled = true;
-		this.srf.connect({
+		void this.srf.connect({
 			host,
 			port,
 			secret,
@@ -189,8 +221,8 @@ export class SipServerSession {
 		res.send(exception.sipErrorCode);
 	}
 
-	private onDrachtioError(error: unknown, socket?: Socket): void {
-		logger.error({ msg: 'Drachtio Service Error', error });
+	private onDrachtioError(err: unknown, socket?: Socket): void {
+		logger.error({ msg: 'Drachtio Service Error', err });
 
 		if (this.isEnabledOnSettings(this.settings)) {
 			return;

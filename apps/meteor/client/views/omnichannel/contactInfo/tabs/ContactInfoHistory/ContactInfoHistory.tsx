@@ -1,7 +1,8 @@
 import type { ILivechatContact, Serialized } from '@rocket.chat/core-typings';
 import { OmnichannelSourceType } from '@rocket.chat/core-typings';
-import { Box, Margins, Throbber, States, StatesIcon, StatesTitle, Select } from '@rocket.chat/fuselage';
+import { Box, Throbber, States, StatesIcon, StatesTitle, Select } from '@rocket.chat/fuselage';
 import { useLocalStorage } from '@rocket.chat/fuselage-hooks';
+import { VirtualizedScrollbars, ContextualbarContent, ContextualbarEmptyContent } from '@rocket.chat/ui-client';
 import { useEndpoint, useSetModal } from '@rocket.chat/ui-contexts';
 import { useQuery } from '@tanstack/react-query';
 import type { Key } from 'react';
@@ -10,13 +11,12 @@ import { useTranslation } from 'react-i18next';
 import { Virtuoso } from 'react-virtuoso';
 
 import ContactInfoHistoryItem from './ContactInfoHistoryItem';
-import { ContextualbarContent, ContextualbarEmptyContent } from '../../../../../components/Contextualbar';
-import { VirtualizedScrollbars } from '../../../../../components/CustomScrollbars';
 import { useHasLicenseModule } from '../../../../../hooks/useHasLicenseModule';
+import { useItemListNavigation } from '../../../../../hooks/useItemListNavigation';
 import { useOmnichannelSource } from '../../../hooks/useOmnichannelSource';
 import AdvancedContactModal from '../../AdvancedContactModal';
 
-type ContactInfoHistoryProps = {
+export type ContactInfoHistoryProps = {
 	contact: Serialized<ILivechatContact>;
 	setChatId: (chatId: string) => void;
 };
@@ -28,10 +28,11 @@ const ContactInfoHistory = ({ contact, setChatId }: ContactInfoHistoryProps) => 
 	const setModal = useSetModal();
 	const [storedType, setStoredType] = useLocalStorage<string>('contact-history-type', 'all');
 
-	const hasLicense = useHasLicenseModule('contact-id-verification') as boolean;
+	const { data: hasLicense = false } = useHasLicenseModule('contact-id-verification');
 	const type = isFilterBlocked(hasLicense, storedType) ? 'all' : storedType;
 
 	const { getSourceName } = useOmnichannelSource();
+	const historyListRef = useItemListNavigation();
 
 	const getContactHistory = useEndpoint('GET', '/v1/omnichannel/contacts.history');
 	const { data, isLoading, isError } = useQuery({
@@ -69,30 +70,29 @@ const ContactInfoHistory = ({ contact, setChatId }: ContactInfoHistoryProps) => 
 	);
 
 	return (
-		<ContextualbarContent paddingInline={0}>
+		<ContextualbarContent flush>
 			<Box
 				display='flex'
 				flexDirection='row'
-				p={24}
+				padding={24}
 				borderBlockEndWidth='default'
 				borderBlockEndStyle='solid'
 				borderBlockEndColor='extra-light'
 				flexShrink={0}
 			>
-				<Box display='flex' flexDirection='row' flexGrow={1} mi='neg-x4'>
-					<Margins inline={4}>
-						<Select
-							value={type}
-							onChange={handleChangeFilter}
-							placeholder={t('Filter')}
-							options={historyFilterOptions}
-							disabled={type === 'all' && data?.history.length === 0}
-						/>
-					</Margins>
+				<Box display='flex' flexDirection='row' flexGrow={1}>
+					<Select
+						aria-label={t('Filter')}
+						value={type}
+						onChange={handleChangeFilter}
+						placeholder={t('Filter')}
+						options={historyFilterOptions}
+						disabled={type === 'all' && data?.history.length === 0}
+					/>
 				</Box>
 			</Box>
 			{isLoading && (
-				<Box pi={24} pb={12}>
+				<Box paddingInline={24} paddingBlock={12}>
 					<Throbber size='x12' />
 				</Box>
 			)}
@@ -107,12 +107,12 @@ const ContactInfoHistory = ({ contact, setChatId }: ContactInfoHistoryProps) => 
 			)}
 			{!isError && data?.history && data.history.length > 0 && (
 				<>
-					<Box pi={24} pb={12}>
+					<Box paddingInline={24} paddingBlock={12}>
 						<Box is='span' color='hint' fontScale='p2'>
 							{t('Showing_current_of_total', { current: data?.history.length, total: data?.total })}
 						</Box>
 					</Box>
-					<Box role='list' height='100%' overflow='hidden' flexShrink={1}>
+					<Box role='list' height='100%' overflow='hidden' flexShrink={1} ref={historyListRef}>
 						<VirtualizedScrollbars>
 							<Virtuoso
 								totalCount={data.history.length}

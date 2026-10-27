@@ -1,13 +1,13 @@
 import { useHasLicenseModule } from '../../../hooks/useHasLicenseModule';
 import AutoCompleteAgent from '../components/AutoCompleteAgent';
 
-type ContactManagerInputProps = {
+export type ContactManagerInputProps = {
 	value: string;
 	onChange: (currentValue: string) => void;
 };
 
 const ContactManagerInput = ({ value: userId, onChange }: ContactManagerInputProps) => {
-	const hasLicense = useHasLicenseModule('livechat-enterprise');
+	const { data: hasLicense = false } = useHasLicenseModule('livechat-enterprise');
 
 	if (!hasLicense) {
 		return null;

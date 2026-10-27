@@ -112,7 +112,7 @@ describe('Thread Metrics', () => {
 			expect(navigateSpy).toHaveBeenCalledWith('thread', 'rid', 'thread', 'mid');
 
 			const threadCount = screen.getByTitle('Last_message__date__');
-			expect(threadCount).toHaveTextContent('5 replies July 1, 2024');
+			expect(threadCount).toHaveTextContent('5 replies July 1st, 2024');
 		});
 
 		it('should render small not followed with 3 participants and unread', async () => {
@@ -287,7 +287,7 @@ describe('Thread Metrics', () => {
 			const follower = screen.getByTitle('follower');
 			expect(follower).toBeVisible();
 
-			// eslint-disable-next-line testing-library/no-node-access
+			// oxlint-disable-next-line testing-library/no-node-access
 			expect(follower.querySelector('.rcx-icon--name-user')).toBeVisible();
 
 			expect(screen.getByText('1')).toBeVisible();
@@ -303,7 +303,7 @@ describe('Thread Metrics', () => {
 			const follower = screen.getByTitle('followers');
 			expect(follower).toBeVisible();
 
-			// eslint-disable-next-line testing-library/no-node-access
+			// oxlint-disable-next-line testing-library/no-node-access
 			expect(follower.querySelector('.rcx-icon--name-user')).toBeVisible();
 
 			expect(screen.getByText('5')).toBeVisible();

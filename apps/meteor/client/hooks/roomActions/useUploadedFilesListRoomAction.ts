@@ -1,6 +1,5 @@
+import type { RoomToolboxActionConfig } from '@rocket.chat/ui-contexts';
 import { lazy, useMemo } from 'react';
-
-import type { RoomToolboxActionConfig } from '../../views/room/contexts/RoomToolboxContext';
 
 const RoomFiles = lazy(() => import('../../views/room/contextualBar/RoomFiles'));
 
@@ -12,7 +11,7 @@ export const useUploadedFilesListRoomAction = () => {
 			title: 'Files',
 			icon: 'clip',
 			tabComponent: RoomFiles,
-			order: 8,
+			order: 9,
 			type: 'organization',
 		};
 	}, []);

@@ -4,10 +4,11 @@ import type { UseQueryResult } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
+import { useUiKitActionManager } from './uikit/useUiKitActionManager';
 import { useAppActionButtons } from './useAppActionButtons';
 import { useApplyButtonAuthFilter } from './useApplyButtonFilters';
-import { UiKitTriggerTimeoutError } from '../../app/ui-message/client/UiKitTriggerTimeoutError';
-import { useUiKitActionManager } from '../uikit/hooks/useUiKitActionManager';
+import { Utilities } from '../../ee/lib/misc/Utilities';
+import { UiKitTriggerTimeoutError } from '../lib/errors/UiKitTriggerTimeoutError';
 
 export const useUserDropdownAppsActionButtons = () => {
 	const result = useAppActionButtons('userDropdownAction');
@@ -25,7 +26,7 @@ export const useUserDropdownAppsActionButtons = () => {
 					return {
 						id: `${action.appId}_${action.actionId}`,
 						// icon: action.icon as GenericMenuItemProps['icon'],
-						content: action.labelI18n,
+						content: t(Utilities.getI18nKeyForApp(action.labelI18n, action.appId)),
 						onClick: () => {
 							void actionManager
 								.emitInteraction(action.appId, {

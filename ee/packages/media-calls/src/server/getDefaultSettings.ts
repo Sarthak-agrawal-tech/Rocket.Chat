@@ -2,7 +2,6 @@ import type { IMediaCallServerSettings } from '../definition/IMediaCallServer';
 
 export function getDefaultSettings(): IMediaCallServerSettings {
 	return {
-		enabled: false,
 		internalCalls: {
 			requireExtensions: false,
 			routeExternally: 'never',
@@ -19,7 +18,10 @@ export function getDefaultSettings(): IMediaCallServerSettings {
 				port: 5080,
 			},
 		},
+		mobileRinging: false,
+		iceServers: [],
 
 		permissionCheck: async () => false,
+		isFeatureAvailableForUser: () => false,
 	};
 }

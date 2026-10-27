@@ -1,8 +1,18 @@
-import { Box, Field, FieldError, FieldGroup, FieldHint, FieldLabel, FieldRow, PasswordInput, Button } from '@rocket.chat/fuselage';
+import {
+	Box,
+	Field,
+	FieldError,
+	FieldGroup,
+	FieldHint,
+	FieldLabel,
+	FieldRow,
+	PasswordInput,
+	Button,
+	ButtonGroup,
+} from '@rocket.chat/fuselage';
 import { PasswordVerifierList } from '@rocket.chat/ui-client';
 import { useToastMessageDispatch, usePasswordPolicy } from '@rocket.chat/ui-contexts';
 import { useMutation } from '@tanstack/react-query';
-import DOMPurify from 'dompurify';
 import { useEffect, useId } from 'react';
 import { Controller, useForm } from 'react-hook-form';
 import { Trans, useTranslation } from 'react-i18next';
@@ -43,7 +53,7 @@ const defaultValues = {
 	confirmationPassphrase: '',
 };
 
-export const ChangePassphrase = (): JSX.Element => {
+export const ChangePassphrase = () => {
 	const { t } = useTranslation();
 	const dispatchToastMessage = useToastMessageDispatch();
 
@@ -99,17 +109,14 @@ export const ChangePassphrase = (): JSX.Element => {
 
 	return (
 		<>
-			<Box
-				is='p'
-				fontScale='p1'
-				id={e2ePasswordExplanationId}
-				dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(t('E2E_Encryption_Password_Explanation')) }}
-			/>
-			<Box mbs={36} w='full'>
-				<Box is='h3' fontScale='h4' mbe={12}>
+			<Box is='p' fontScale='p1' id={e2ePasswordExplanationId}>
+				<Trans i18nKey='E2E_Encryption_Password_Explanation' />
+			</Box>
+			<Box marginBlockStart='x32' width='full' display='flex' flexDirection='column' gap='x12'>
+				<Box is='h3' fontScale='h4'>
 					{t('Change_E2EE_password')}
 				</Box>
-				<FieldGroup w='full'>
+				<FieldGroup>
 					<Field>
 						<FieldLabel htmlFor={passphraseId}>{t('New_E2EE_password')}</FieldLabel>
 						<FieldRow>
@@ -179,7 +186,6 @@ export const ChangePassphrase = (): JSX.Element => {
 											{...field}
 											id={confirmPassphraseId}
 											error={errors.confirmationPassphrase?.message}
-											flexGrow={1}
 											disabled={!keysExist || !valid}
 											aria-required={passphrase ? 'true' : 'false'}
 											aria-invalid={errors.confirmationPassphrase ? 'true' : 'false'}
@@ -196,15 +202,11 @@ export const ChangePassphrase = (): JSX.Element => {
 						</Field>
 					)}
 				</FieldGroup>
-				<Button
-					primary
-					disabled={!(keysExist && valid && isValid)}
-					onClick={handleSubmit(handleSave)}
-					mbs={12}
-					data-qa-type='e2e-encryption-save-password-button'
-				>
-					{t('Save_changes')}
-				</Button>
+				<ButtonGroup>
+					<Button variant='primary' disabled={!(keysExist && valid && isValid)} onClick={handleSubmit(handleSave)}>
+						{t('Save_changes')}
+					</Button>
+				</ButtonGroup>
 			</Box>
 		</>
 	);

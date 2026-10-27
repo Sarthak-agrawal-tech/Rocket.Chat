@@ -16,14 +16,16 @@ const checkIsOptionsValid = (value: string) => {
 	return value.split(',').every((v) => /^[a-zA-Z0-9-_ ]+$/.test(v));
 };
 
-const CustomFieldsAdditionalForm = ({ className }: { className?: ComponentProps<typeof Field>['className'] }) => {
+export type CustomFieldsAdditionalFormProps = { className?: ComponentProps<typeof Field>['className'] };
+
+const CustomFieldsAdditionalForm = ({ className }: CustomFieldsAdditionalFormProps) => {
 	const { t } = useTranslation();
 	const {
 		control,
 		watch,
 		formState: { errors },
 	} = useFormContext<EditCustomFieldsFormData>();
-	const hasLicense = useHasLicenseModule('livechat-enterprise');
+	const { data: hasLicense = false } = useHasLicenseModule('livechat-enterprise');
 
 	const { visibility, type } = watch();
 

@@ -5,10 +5,10 @@ import type { StreamerCallbackArgs } from '../../types/streams';
 
 export interface APILegacy {
 	users: {
-		all(fields?: { name: 1; username: 1; status: 1; type: 1 }): Promise<Serialized<OperationResult<'GET', '/v1/users.list'>>>;
+		all(): Promise<Serialized<OperationResult<'GET', '/v1/users.list'>>>;
 		allNames(): Promise<Serialized<OperationResult<'GET', '/v1/users.list'>>>;
 		allIDs(): Promise<Serialized<OperationResult<'GET', '/v1/users.list'>>>;
-		online(fields?: { name: 1; username: 1; status: 1; type: 1 }): Promise<Serialized<OperationResult<'GET', '/v1/users.list'>>>;
+		online(): Promise<Serialized<OperationResult<'GET', '/v1/users.list'>>>;
 		onlineNames(): Promise<Serialized<OperationResult<'GET', '/v1/users.list'>>>;
 		onlineIds(): Promise<Serialized<OperationResult<'GET', '/v1/users.list'>>>;
 		info(username: string): Promise<Serialized<OperationResult<'GET', '/v1/users.info'>>>;
@@ -86,10 +86,7 @@ export type RocketchatSdkLegacyEvents = {
 	'Users:NameChanged': StreamerCallbackArgs<'notify-logged', 'Users:NameChanged'>;
 	'Users:Deleted': StreamerCallbackArgs<'notify-logged', 'Users:Deleted'>;
 	'updateAvatar': StreamerCallbackArgs<'notify-logged', 'updateAvatar'>;
-
 	'user-message': StreamerCallbackArgs<'notify-user', `${string}/message`>;
-	'otr': StreamerCallbackArgs<'notify-user', `${string}/otr`>;
-	'webrtc': StreamerCallbackArgs<'notify-user', `${string}/webrtc`>;
 	'notification': StreamerCallbackArgs<'notify-user', `${string}/notification`>;
 	'rooms-changed': StreamerCallbackArgs<'notify-user', `${string}/rooms-changed`>;
 	'subscriptions-changed': StreamerCallbackArgs<'notify-user', `${string}/subscriptions-changed`>;

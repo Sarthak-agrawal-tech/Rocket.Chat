@@ -1,8 +1,8 @@
-import fs from 'fs';
+import fs from 'node:fs';
 
+import { ClientSafeError } from '@rocket.chat/core-services';
 import type { IUpload } from '@rocket.chat/core-typings';
 import { check } from 'meteor/check';
-import { Meteor } from 'meteor/meteor';
 import type { ClientSession } from 'mongodb';
 
 import { UploadFS } from './ufs';
@@ -14,19 +14,15 @@ export async function ufsComplete(fileId: string, storeName: string, options?: {
 	// Get store
 	const store = UploadFS.getStore(storeName);
 	if (!store) {
-		throw new Meteor.Error('invalid-store', 'Store not found');
+		throw new ClientSafeError('invalid-store', 'Store not found');
 	}
 
 	const tmpFile = UploadFS.getTempFilePath(fileId);
 
-	const removeTempFile = function () {
-		fs.stat(tmpFile, (err) => {
-			!err &&
-				fs.unlink(tmpFile, (err2) => {
-					err2 && console.error(`ufs: cannot delete temp file "${tmpFile}" (${err2.message})`);
-				});
+	const removeTempFile = () =>
+		fs.promises.unlink(tmpFile).catch(() => {
+			console.warn(`[ufsComplete] Failed to remove temp file: ${tmpFile}`);
 		});
-	};
 
 	return new Promise(async (resolve, reject) => {
 		try {
@@ -36,7 +32,7 @@ export async function ufsComplete(fileId: string, storeName: string, options?: {
 			const file = await store.getCollection().findOne<IUpload>({ _id: fileId }, { session: options?.session });
 
 			if (!file) {
-				throw new Meteor.Error('invalid-file', 'File is not valid');
+				throw new ClientSafeError('invalid-file', 'File is not valid');
 			}
 
 			// Validate file before moving to the store
@@ -61,7 +57,7 @@ export async function ufsComplete(fileId: string, storeName: string, options?: {
 				rs,
 				fileId,
 				(err, file) => {
-					removeTempFile();
+					void removeTempFile();
 
 					if (err) {
 						return reject(err);
@@ -76,8 +72,7 @@ export async function ufsComplete(fileId: string, storeName: string, options?: {
 		} catch (err: any) {
 			// If write failed, remove the file
 			await store.removeById(fileId, { session: options?.session });
-			// removeTempFile(); // todo remove temp file on error or try again ?
-			reject(new Meteor.Error('ufs: cannot upload file', err));
+			reject(new ClientSafeError('ufs: cannot upload file', err));
 		}
 	});
 }

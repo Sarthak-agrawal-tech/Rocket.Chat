@@ -1,6 +1,5 @@
+import type { RoomToolboxActionConfig } from '@rocket.chat/ui-contexts';
 import { lazy, useMemo } from 'react';
-
-import type { RoomToolboxActionConfig } from '../../views/room/contexts/RoomToolboxContext';
 
 const StarredMessagesTab = lazy(() => import('../../views/room/contextualBar/StarredMessagesTab'));
 
@@ -12,7 +11,7 @@ export const useStarredMessagesRoomAction = () => {
 			title: 'Starred_Messages',
 			icon: 'star',
 			tabComponent: StarredMessagesTab,
-			order: 10,
+			order: 11,
 			type: 'organization',
 		}),
 		[],

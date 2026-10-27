@@ -1,11 +1,4 @@
 import { Pagination, States, StatesAction, StatesActions, StatesIcon, StatesTitle } from '@rocket.chat/fuselage';
-import { useRoute, useTranslation, useEndpoint } from '@rocket.chat/ui-contexts';
-import { useQuery } from '@tanstack/react-query';
-import type { ReactElement } from 'react';
-import { useMemo, useCallback } from 'react';
-
-import SendTestButton from './SendTestButton';
-import GenericNoResults from '../../../components/GenericNoResults';
 import {
 	GenericTable,
 	GenericTableBody,
@@ -14,11 +7,17 @@ import {
 	GenericTableHeaderCell,
 	GenericTableLoadingTable,
 	GenericTableRow,
-} from '../../../components/GenericTable';
-import { usePagination } from '../../../components/GenericTable/hooks/usePagination';
-import { useSort } from '../../../components/GenericTable/hooks/useSort';
+	usePagination,
+	useSort,
+	GenericNoResults,
+} from '@rocket.chat/ui-client';
+import { useRoute, useTranslation, useEndpoint } from '@rocket.chat/ui-contexts';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo, useCallback } from 'react';
 
-const EmailInboxTable = (): ReactElement => {
+import SendTestButton from './SendTestButton';
+
+const EmailInboxTable = () => {
 	const t = useTranslation();
 	const router = useRoute('admin-email-inboxes');
 	const { current, itemsPerPage, setItemsPerPage: onSetItemsPerPage, setCurrent: onSetCurrent, ...paginationProps } = usePagination();
@@ -86,11 +85,10 @@ const EmailInboxTable = (): ReactElement => {
 									tabIndex={0}
 									role='link'
 									action
-									width='full'
 								>
-									<GenericTableCell withTruncatedText>{emailInbox.name}</GenericTableCell>
-									<GenericTableCell withTruncatedText>{emailInbox.email}</GenericTableCell>
-									<GenericTableCell withTruncatedText>{emailInbox.active ? t('Yes') : t('No')}</GenericTableCell>
+									<GenericTableCell truncate>{emailInbox.name}</GenericTableCell>
+									<GenericTableCell truncate>{emailInbox.email}</GenericTableCell>
+									<GenericTableCell truncate>{emailInbox.active ? t('Yes') : t('No')}</GenericTableCell>
 									<SendTestButton id={emailInbox._id} />
 								</GenericTableRow>
 							))}

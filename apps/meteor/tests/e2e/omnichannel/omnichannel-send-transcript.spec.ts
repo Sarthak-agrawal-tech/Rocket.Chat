@@ -4,7 +4,8 @@ import { createFakeVisitor } from '../../mocks/data';
 import { IS_EE } from '../config/constants';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { OmnichannelLiveChat, HomeChannel } from '../page-objects';
+import { HomeChannel } from '../page-objects';
+import { OmnichannelLiveChat } from '../page-objects/omnichannel';
 import { test, expect } from '../utils/test';
 
 test.describe('omnichannel-transcript', () => {
@@ -32,9 +33,9 @@ test.describe('omnichannel-transcript', () => {
 		await agent.page.close();
 	});
 
-	test('Receiving a message from visitor', async ({ page }) => {
+	test('Receiving a message from visitor', async () => {
 		await test.step('Expect send a message as a visitor', async () => {
-			await page.goto('/livechat');
+			await poLiveChat.goto();
 			await poLiveChat.openLiveChat();
 			await poLiveChat.sendMessage(newVisitor, false);
 			await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor');
@@ -42,7 +43,7 @@ test.describe('omnichannel-transcript', () => {
 		});
 
 		await test.step('Expect to have 1 omnichannel assigned to agent 1', async () => {
-			await agent.poHomeChannel.sidenav.openChat(newVisitor.name);
+			await agent.poHomeChannel.navbar.openChat(newVisitor.name);
 		});
 
 		await test.step('Expect to be able to send transcript to email', async () => {

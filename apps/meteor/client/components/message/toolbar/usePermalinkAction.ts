@@ -4,7 +4,7 @@ import { useToastMessageDispatch } from '@rocket.chat/ui-contexts';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 
-import type { MessageActionConfig, MessageActionContext } from '../../../../app/ui-utils/client/lib/MessageAction';
+import type { MessageActionConfig, MessageActionContext } from '../../../lib/MessageAction';
 import { getPermaLink } from '../../../lib/getPermaLink';
 
 export const usePermalinkAction = (
@@ -16,7 +16,6 @@ export const usePermalinkAction = (
 
 	const dispatchToastMessage = useToastMessageDispatch();
 
-	// @ts-expect-error - to be implemented
 	const isABACEnabled = !!room.abacAttributes;
 	const encrypted = isE2EEMessage(message);
 	const tooltip = useMemo(() => {

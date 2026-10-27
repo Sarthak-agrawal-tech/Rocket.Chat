@@ -1,17 +1,13 @@
-import type { Box } from '@rocket.chat/fuselage';
-import { useEffectEvent } from '@rocket.chat/fuselage-hooks';
-import { GenericMenu } from '@rocket.chat/ui-client';
-import type { ComponentProps } from 'react';
+import { useStableCallback } from '@rocket.chat/fuselage-hooks';
+import { GenericMenu, HeaderToolbarAction, HeaderToolbarDivider } from '@rocket.chat/ui-client';
+import { useRoomToolbox, type RenderToolboxItemParams, type RoomToolboxActionConfig } from '@rocket.chat/ui-contexts';
 import { memo } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import { useRoomToolboxActions } from './hooks/useRoomToolboxActions';
-import { HeaderToolbarAction, HeaderToolbarDivider } from '../../../../components/Header';
-import { useRoomToolbox } from '../../contexts/RoomToolboxContext';
-import type { RenderToolboxItemParams, RoomToolboxActionConfig } from '../../contexts/RoomToolboxContext';
 
-type RoomToolboxProps = {
-	className?: ComponentProps<typeof Box>['className'];
+export type RoomToolboxProps = {
+	className?: string;
 };
 
 const RoomToolbox = ({ className }: RoomToolboxProps) => {
@@ -22,7 +18,7 @@ const RoomToolbox = ({ className }: RoomToolboxProps) => {
 
 	const showKebabMenu = hiddenActions.length > 0;
 
-	const renderDefaultToolboxItem = useEffectEvent(
+	const renderDefaultToolboxItem = useStableCallback(
 		({ id, className, icon, title, toolbox: { tab }, action, disabled, tooltip }: RenderToolboxItemParams) => {
 			return (
 				<HeaderToolbarAction
@@ -53,7 +49,7 @@ const RoomToolbox = ({ className }: RoomToolboxProps) => {
 			{featuredActions.map(mapToToolboxItem)}
 			{featuredActions.length > 0 && <HeaderToolbarDivider />}
 			{visibleActions.map(mapToToolboxItem)}
-			{showKebabMenu && <GenericMenu title={t('Options')} sections={hiddenActions} placement='bottom-end' />}
+			{showKebabMenu && <GenericMenu className={className} title={t('Options')} sections={hiddenActions} placement='bottom-end' />}
 		</>
 	);
 };

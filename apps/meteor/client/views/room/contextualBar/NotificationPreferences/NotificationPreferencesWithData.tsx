@@ -1,6 +1,5 @@
 import type { SelectOption } from '@rocket.chat/fuselage';
-import { useCustomSound, useToastMessageDispatch } from '@rocket.chat/ui-contexts';
-import type { ReactElement } from 'react';
+import { useCustomSound, useToastMessageDispatch, useRoomToolbox, useUserPreference } from '@rocket.chat/ui-contexts';
 import { memo } from 'react';
 import { useForm, FormProvider } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
@@ -8,15 +7,15 @@ import { useTranslation } from 'react-i18next';
 import NotificationPreferences from './NotificationPreferences';
 import { useEndpointMutation } from '../../../../hooks/useEndpointMutation';
 import { useRoom, useRoomSubscription } from '../../contexts/RoomContext';
-import { useRoomToolbox } from '../../contexts/RoomToolboxContext';
 
-const NotificationPreferencesWithData = (): ReactElement => {
+const NotificationPreferencesWithData = () => {
 	const { t } = useTranslation();
 	const room = useRoom();
 	const subscription = useRoomSubscription();
 	const { closeTab } = useRoomToolbox();
 	const customSound = useCustomSound();
 	const dispatchToastMessage = useToastMessageDispatch();
+	const newMessageNotificationPreference = useUserPreference<string>('newMessageNotification', 'chime') as string;
 
 	const { mutateAsync: saveSettings } = useEndpointMutation('POST', '/v1/rooms.saveNotification', {
 		onSuccess: () => {
@@ -59,7 +58,7 @@ const NotificationPreferencesWithData = (): ReactElement => {
 	const { desktopSound } = methods.watch();
 
 	const handlePlaySound = (): void => {
-		customSound.play(desktopSound);
+		customSound.play(desktopSound === 'default' ? newMessageNotificationPreference : desktopSound);
 	};
 
 	const handleSave = methods.handleSubmit(

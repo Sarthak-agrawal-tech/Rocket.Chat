@@ -1,139 +1,117 @@
-import type { IRoom } from '@rocket.chat/core-typings';
-import { css } from '@rocket.chat/css-in-js';
 import { Box } from '@rocket.chat/fuselage';
-import { useResizeObserver } from '@rocket.chat/fuselage-hooks';
 import { useUserPreference, useUserId } from '@rocket.chat/ui-contexts';
-import type { ReactElement } from 'react';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Virtuoso } from 'react-virtuoso';
+import type { VirtualizerHandle } from 'virtua';
 
+import MoreUnreadsBubble from './MoreUnreadsBubble';
+import RoomListCollapser from './RoomListCollapser';
 import RoomListRow from './RoomListRow';
 import RoomListRowWrapper from './RoomListRowWrapper';
 import RoomListWrapper from './RoomListWrapper';
-import { VirtualizedScrollbars } from '../../components/CustomScrollbars';
+import { useMergedRefsV2 } from '../../hooks/useMergedRefsV2';
 import { useOpenedRoom } from '../../lib/RoomManager';
-import { useAvatarTemplate } from '../hooks/useAvatarTemplate';
+import { useMoveCategoryPosition } from '../categories/hooks/useMoveCategoryPosition';
+import SidebarVirtualList from '../components/SidebarVirtualList';
+import { SIDEBAR_DYNAMIC_GROUP_KEYS } from '../hooks/useCategoryList';
+import { useCollapsedGroups } from '../hooks/useCollapsedGroups';
+import { useOffscreenUnreads } from '../hooks/useOffscreenUnreads';
 import { usePreventDefault } from '../hooks/usePreventDefault';
 import { useRoomList } from '../hooks/useRoomList';
 import { useShortcutOpenMenu } from '../hooks/useShortcutOpenMenu';
-import { useTemplateByViewMode } from '../hooks/useTemplateByViewMode';
 
-const computeItemKey = (index: number, room: IRoom): IRoom['_id'] | number => room._id || index;
+const canMoveGroup = (groups: { key: string }[], index: number, direction: 'up' | 'down'): boolean => {
+	if (SIDEBAR_DYNAMIC_GROUP_KEYS.includes(groups[index].key)) return false;
+	if (direction === 'down') return index + 1 < groups.length;
+	return groups.slice(0, index).some((g) => !SIDEBAR_DYNAMIC_GROUP_KEYS.includes(g.key));
+};
 
-const RoomList = (): ReactElement => {
+type SidebarViewMode = 'extended' | 'medium' | 'condensed';
+
+const sidebarRowHeight: Record<SidebarViewMode, number> = {
+	condensed: 28,
+	medium: 36,
+	extended: 48,
+};
+
+const SIDEBAR_VIRTUAL_BUFFER_ROWS = 5;
+
+const RoomList = () => {
 	const { t } = useTranslation();
-	const isAnonymous = !useUserId();
-	const roomsList = useRoomList();
-	const avatarTemplate = useAvatarTemplate();
-	const sideBarItemTemplate = useTemplateByViewMode();
-	const { ref } = useResizeObserver({ debounceDelay: 100 });
-	const openedRoom = useOpenedRoom() ?? '';
-	const sidebarViewMode = useUserPreference<'extended' | 'medium' | 'condensed'>('sidebarViewMode') || 'extended';
+	const userId = useUserId();
+	const isAnonymous = !userId;
 
-	const extended = sidebarViewMode === 'extended';
+	const { collapsedGroups, handleClick } = useCollapsedGroups();
+	const { groups } = useRoomList({ collapsedGroups });
+	const moveCategory = useMoveCategoryPosition();
+	const virtualizerRef = useRef<VirtualizerHandle>(null);
+	const { previousUnread, nextUnread, handleRangeChange } = useOffscreenUnreads({ groups });
+	const openedRoom = useOpenedRoom() ?? '';
+	const sidebarViewMode = useUserPreference<SidebarViewMode>('sidebarViewMode') || 'extended';
+	const sidebarDisplayAvatar = !!useUserPreference<boolean>('sidebarDisplayAvatar');
+	const bufferSize = sidebarRowHeight[sidebarViewMode] * SIDEBAR_VIRTUAL_BUFFER_ROWS;
+
 	const itemData = useMemo(
 		() => ({
-			extended,
 			t,
-			SideBarItemTemplate: sideBarItemTemplate,
-			AvatarTemplate: avatarTemplate,
+			viewMode: sidebarViewMode,
+			showAvatar: sidebarDisplayAvatar,
 			openedRoom,
-			sidebarViewMode,
 			isAnonymous,
+			userId,
 		}),
-		[avatarTemplate, extended, isAnonymous, openedRoom, sideBarItemTemplate, sidebarViewMode, t],
+		[isAnonymous, openedRoom, sidebarDisplayAvatar, sidebarViewMode, t, userId],
 	);
 
-	usePreventDefault(ref);
-	useShortcutOpenMenu(ref);
+	const allGroupKeys = useMemo(() => groups.map((group) => group.key), [groups]);
 
-	const roomsListStyle = css`
-		position: relative;
+	const virtualGroups = useMemo(
+		() =>
+			groups.map((group) => ({
+				key: group.key,
+				group,
+				items: group.rooms,
+			})),
+		[groups],
+	);
 
-		display: flex;
+	const scrollToUnread = (index: number) => {
+		virtualizerRef.current?.scrollToIndex(index, { align: 'center', smooth: true });
+	};
 
-		overflow-x: hidden;
-		overflow-y: hidden;
-
-		flex: 1 1 auto;
-
-		height: 100%;
-
-		&--embedded {
-			margin-top: 2rem;
-		}
-
-		&__list:not(:last-child) {
-			margin-bottom: 22px;
-		}
-
-		&__type {
-			display: flex;
-
-			flex-direction: row;
-
-			padding: 0 var(--sidebar-default-padding) 1rem var(--sidebar-default-padding);
-
-			color: var(--rooms-list-title-color);
-
-			font-size: var(--rooms-list-title-text-size);
-			align-items: center;
-			justify-content: space-between;
-
-			&-text--livechat {
-				flex: 1;
-			}
-		}
-
-		&__empty-room {
-			padding: 0 var(--sidebar-default-padding);
-
-			color: var(--rooms-list-empty-text-color);
-
-			font-size: var(--rooms-list-empty-text-size);
-		}
-
-		&__toolbar-search {
-			position: absolute;
-			z-index: 10;
-			left: 0;
-
-			overflow-y: scroll;
-
-			height: 100%;
-
-			background-color: var(--sidebar-background);
-
-			padding-block-start: 12px;
-		}
-
-		@media (max-width: 400px) {
-			padding: 0 calc(var(--sidebar-small-default-padding) - 4px);
-
-			&__type,
-			&__empty-room {
-				padding: 0 calc(var(--sidebar-small-default-padding) - 4px) 0.5rem calc(var(--sidebar-small-default-padding) - 4px);
-			}
-		}
-	`;
+	const preventDefaultRef = usePreventDefault();
+	const shortcutOpenMenuRef = useShortcutOpenMenu();
+	const ref = useMergedRefsV2(preventDefaultRef, shortcutOpenMenuRef);
 
 	return (
-		<Box className={[roomsListStyle, 'sidebar--custom-colors'].filter(Boolean)}>
-			<Box h='full' w='full' ref={ref}>
-				<VirtualizedScrollbars>
-					<Virtuoso
-						totalCount={roomsList.length}
-						data={roomsList}
-						components={{
-							Item: RoomListRowWrapper,
-							List: RoomListWrapper,
-						}}
-						computeItemKey={computeItemKey}
-						itemContent={(_, data): ReactElement => <RoomListRow data={itemData} item={data} />}
+		<Box position='relative' overflow='hidden' height='full' ref={ref}>
+			<SidebarVirtualList
+				ref={virtualizerRef}
+				groups={virtualGroups}
+				as={RoomListWrapper}
+				bufferSize={bufferSize}
+				onRangeChange={handleRangeChange}
+				getItemKey={(item) => item._id}
+				renderGroup={(group, index) => (
+					<RoomListCollapser
+						group={group}
+						canMoveUp={canMoveGroup(groups, index, 'up')}
+						canMoveDown={canMoveGroup(groups, index, 'down')}
+						onMoveUp={() => moveCategory(allGroupKeys, group.key, 'up')}
+						onMoveDown={() => moveCategory(allGroupKeys, group.key, 'down')}
+						onClick={() => handleClick(group.key)}
 					/>
-				</VirtualizedScrollbars>
-			</Box>
+				)}
+				renderItem={(item, _itemIndex, _group, _groupIndex, rowIndex) => (
+					<RoomListRowWrapper data-index={rowIndex}>
+						<RoomListRow data={itemData} item={item} />
+					</RoomListRowWrapper>
+				)}
+			/>
+			{previousUnread && (
+				<MoreUnreadsBubble direction='up' mention={previousUnread.mention} onClick={() => scrollToUnread(previousUnread.index)} />
+			)}
+			{nextUnread && <MoreUnreadsBubble direction='down' mention={nextUnread.mention} onClick={() => scrollToUnread(nextUnread.index)} />}
 		</Box>
 	);
 };

@@ -4,7 +4,8 @@ import { createFakeVisitor } from '../../mocks/data';
 import { IS_EE } from '../config/constants';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { OmnichannelLiveChat, HomeChannel } from '../page-objects';
+import { HomeChannel } from '../page-objects';
+import { OmnichannelLiveChat } from '../page-objects/omnichannel';
 import { expect, test } from '../utils/test';
 
 test.describe('OC - Contact Unknown Callout', () => {
@@ -28,8 +29,8 @@ test.describe('OC - Contact Unknown Callout', () => {
 		poLiveChat = new OmnichannelLiveChat(page, api);
 	});
 
-	test.beforeEach('create livechat conversation', async ({ page }) => {
-		await page.goto('/livechat');
+	test.beforeEach('create livechat conversation', async () => {
+		await poLiveChat.goto();
 		await poLiveChat.openLiveChat();
 		await poLiveChat.sendMessage(newVisitor, false);
 		await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor');
@@ -48,7 +49,7 @@ test.describe('OC - Contact Unknown Callout', () => {
 
 	test('OC - Contact Unknown Callout - Dismiss callout', async () => {
 		await test.step('expect to open conversation', async () => {
-			await agent.poHomeChannel.sidenav.openChat(newVisitor.name);
+			await agent.poHomeChannel.navbar.openChat(newVisitor.name);
 		});
 
 		await test.step('expect contact unknown callout to be visible', async () => {
@@ -61,8 +62,8 @@ test.describe('OC - Contact Unknown Callout', () => {
 		});
 
 		await test.step('expect keep callout hidden after changing pages', async () => {
-			await agent.poHomeChannel.sidenav.sidebarHomeAction.click();
-			await agent.poHomeChannel.sidenav.openChat(newVisitor.name);
+			await agent.poHomeChannel.navbar.btnHome.click();
+			await agent.poHomeChannel.navbar.openChat(newVisitor.name);
 			await expect(agent.poHomeChannel.content.contactUnknownCallout).not.toBeVisible();
 		});
 	});

@@ -2,16 +2,17 @@ import type { Page } from '@playwright/test';
 
 import { IS_EE } from './config/constants';
 import { Users } from './fixtures/userStates';
+import { HomeChannel } from './page-objects';
 import { expect, test } from './utils/test';
 
-const CardIds = {
-	Users: 'homepage-add-users-card',
-	Chan: 'homepage-create-channels-card',
-	Rooms: 'homepage-join-rooms-card',
-	Mobile: 'homepage-mobile-apps-card',
-	Desktop: 'homepage-desktop-apps-card',
-	Docs: 'homepage-documentation-card',
-	Custom: 'homepage-custom-card',
+const CardNames = {
+	Users: 'Add users',
+	Chan: 'Create channels',
+	Rooms: 'Join rooms',
+	Mobile: 'Mobile apps',
+	Desktop: 'Desktop apps',
+	Docs: 'Documentation',
+	Custom: 'Custom content',
 };
 test.use({ storageState: Users.admin.state });
 
@@ -22,8 +23,7 @@ test.describe.serial('homepage', () => {
 	test.describe('for admins', () => {
 		test.beforeAll(async ({ browser }) => {
 			adminPage = await browser.newPage({ storageState: Users.admin.state });
-			await adminPage.goto('/home');
-			await adminPage.waitForSelector('[data-qa-id="home-header"]');
+			await new HomeChannel(adminPage).goto();
 		});
 
 		test.afterAll(async ({ api }) => {
@@ -38,7 +38,7 @@ test.describe.serial('homepage', () => {
 			});
 
 			await test.step('expect all cards to be visible', async () => {
-				await Promise.all(Object.values(CardIds).map((id) => expect(adminPage.locator(`[data-qa-id="${id}"]`)).toBeVisible()));
+				await Promise.all(Object.values(CardNames).map((name) => expect(adminPage.getByRole('region', { name })).toBeVisible()));
 			});
 		});
 
@@ -107,13 +107,12 @@ test.describe.serial('homepage', () => {
 	});
 
 	test.describe('for regular users', () => {
-		const notVisibleCards = [CardIds.Users, CardIds.Custom];
+		const notVisibleCards = [CardNames.Users, CardNames.Custom];
 
 		test.beforeAll(async ({ api, browser }) => {
 			expect((await api.post('/settings/Layout_Home_Body', { value: '' })).status()).toBe(200);
 			regularUserPage = await browser.newPage({ storageState: Users.user2.state });
-			await regularUserPage.goto('/home');
-			await regularUserPage.waitForSelector('[data-qa-id="home-header"]');
+			await new HomeChannel(regularUserPage).goto();
 		});
 
 		test.afterAll(async () => {
@@ -126,14 +125,14 @@ test.describe.serial('homepage', () => {
 			});
 
 			await test.step(`expect ${notVisibleCards.join(' and ')} cards to not be visible`, async () => {
-				await Promise.all(notVisibleCards.map((id) => expect(regularUserPage.locator(`[data-qa-id="${id}"]`)).not.toBeVisible()));
+				await Promise.all(notVisibleCards.map((name) => expect(regularUserPage.getByRole('region', { name })).not.toBeVisible()));
 			});
 
 			await test.step('expect all other cards to be visible', async () => {
 				await Promise.all(
-					Object.values(CardIds)
-						.filter((id) => !notVisibleCards.includes(id))
-						.map((id) => expect(regularUserPage.locator(`[data-qa-id="${id}"]`)).toBeVisible()),
+					Object.values(CardNames)
+						.filter((name) => !notVisibleCards.includes(name))
+						.map((name) => expect(regularUserPage.getByRole('region', { name })).toBeVisible()),
 				);
 			});
 
@@ -142,7 +141,7 @@ test.describe.serial('homepage', () => {
 			});
 
 			await test.step('expect header text to use Layout_Home_Title default setting', async () => {
-				await expect(regularUserPage.locator('[data-qa-type="PageHeader-title"]')).toContainText('Home');
+				await expect(regularUserPage.getByRole('main').getByRole('heading', { level: 1, name: 'Home', exact: true })).toBeVisible();
 			});
 		});
 
@@ -151,8 +150,10 @@ test.describe.serial('homepage', () => {
 				expect((await api.post('/settings/Site_Name', { value: 'NewSiteName' })).status()).toBe(200);
 				expect((await api.post('/settings/Layout_Home_Title', { value: 'NewTitle' })).status()).toBe(200);
 
-				await regularUserPage.goto('/home');
-				await regularUserPage.waitForSelector('[data-qa-id="home-header"]');
+				// the home heading is the setting under test, so wait for its new value rather than the default one
+				await new HomeChannel(regularUserPage).gotoExpecting(
+					regularUserPage.getByRole('main').getByRole('heading', { level: 1, name: 'NewTitle', exact: true }),
+				);
 			});
 
 			test.afterAll(async ({ api }) => {
@@ -166,7 +167,7 @@ test.describe.serial('homepage', () => {
 				});
 
 				await test.step('expect header text to be Layout_Home_Title setting', async () => {
-					await expect(regularUserPage.locator('[data-qa-type="PageHeader-title"]')).toContainText('NewTitle');
+					await expect(regularUserPage.getByRole('main').getByRole('heading', { name: 'NewTitle', exact: true })).toBeVisible();
 				});
 			});
 		});
@@ -176,8 +177,7 @@ test.describe.serial('homepage', () => {
 				expect((await api.post('/settings/Layout_Home_Body', { value: 'Hello' })).status()).toBe(200);
 				expect((await api.post('/settings/Layout_Home_Custom_Block_Visible', { value: true })).status()).toBe(200);
 
-				await regularUserPage.goto('/home');
-				await regularUserPage.waitForSelector('[data-qa-id="home-header"]');
+				await new HomeChannel(regularUserPage).goto();
 			});
 
 			test.afterAll(async ({ api }) => {
@@ -202,7 +202,9 @@ test.describe.serial('homepage', () => {
 
 				test('expect default layout not be visible and custom body visible', async () => {
 					await test.step('expect default layout to not be visible', async () => {
-						await expect(regularUserPage.locator('[data-qa-id="homepage-welcome-text"]')).not.toBeVisible();
+						await expect(
+							regularUserPage.getByRole('main').getByRole('heading', { level: 2, name: 'Welcome to Rocket.chat', exact: true }),
+						).not.toBeVisible();
 					});
 
 					await test.step('expect custom body to be visible', async () => {

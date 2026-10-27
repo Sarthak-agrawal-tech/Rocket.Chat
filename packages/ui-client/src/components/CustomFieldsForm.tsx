@@ -1,6 +1,6 @@
 import type { CustomFieldMetadata } from '@rocket.chat/core-typings';
 import type { SelectOption } from '@rocket.chat/fuselage';
-import { Field, FieldLabel, FieldRow, FieldError, Select, TextInput } from '@rocket.chat/fuselage';
+import { Field, FieldLabel, FieldRow, FieldError, Select, TextInput, FieldGroup } from '@rocket.chat/fuselage';
 import type { TranslationKey } from '@rocket.chat/ui-contexts';
 import { useCallback, useId, useMemo } from 'react';
 import type { Control, FieldValues, FieldError as RHFFieldError } from 'react-hook-form';
@@ -53,9 +53,11 @@ const CustomField = <T extends FieldValues>({
 				case 'required':
 					return t('Required_field', { field: label || name });
 				case 'minLength':
-					return t('Min_length_is', { postProcess: 'sprintf', sprintf: [props?.minLength] });
+					return t('Min_length_is', { limit: props?.minLength });
 				case 'maxLength':
-					return t('Max_length_is', { postProcess: 'sprintf', sprintf: [props?.maxLength] });
+					return t('Max_length_is', { limit: props?.maxLength });
+				default:
+					return error?.message || '';
 			}
 		},
 		[label, name, props?.maxLength, props?.minLength, t],
@@ -75,8 +77,8 @@ const CustomField = <T extends FieldValues>({
 			defaultValue={defaultValue ?? ''}
 			rules={{ minLength: props.minLength, maxLength: props.maxLength, validate: { required: validateRequired } }}
 			render={({ field }) => (
-				<Field rcx-field-group__item>
-					<FieldLabel is='span' id={fieldId} required={required}>
+				<Field className='rcx-field-group__item'>
+					<FieldLabel id={fieldId} required={required}>
 						{label || t(name as TranslationKey)}
 					</FieldLabel>
 					<FieldRow>
@@ -87,7 +89,6 @@ const CustomField = <T extends FieldValues>({
 							aria-describedby={errorMessage && `${fieldId}-error`}
 							error={errorMessage}
 							options={selectOptions as SelectOption[]}
-							flexGrow={1}
 						/>
 					</FieldRow>
 					{errorMessage ? (
@@ -101,11 +102,15 @@ const CustomField = <T extends FieldValues>({
 	);
 };
 
-// eslint-disable-next-line react/no-multi-comp
-export const CustomFieldsForm = <T extends FieldValues>({ formName, formControl, metadata }: CustomFieldFormProps<T>) => (
-	<>
-		{metadata.map(({ name: fieldName, label, ...props }) => (
-			<CustomField key={fieldName} name={`${formName}.${fieldName}`} control={formControl} label={label ?? fieldName} {...props} />
-		))}
-	</>
-);
+// oxlint-disable-next-line react/no-multi-comp
+export const CustomFieldsForm = <T extends FieldValues>({ formName, formControl, metadata }: CustomFieldFormProps<T>) => {
+	const { t } = useTranslation();
+
+	return (
+		<FieldGroup aria-label={t('Custom_Fields')}>
+			{metadata.map(({ name: fieldName, label, ...props }) => (
+				<CustomField key={fieldName} name={`${formName}.${fieldName}`} control={formControl} label={label ?? fieldName} {...props} />
+			))}
+		</FieldGroup>
+	);
+};

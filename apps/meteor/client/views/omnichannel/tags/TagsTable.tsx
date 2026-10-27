@@ -1,12 +1,5 @@
-import { IconButton, Pagination } from '@rocket.chat/fuselage';
-import { useDebouncedValue, useEffectEvent } from '@rocket.chat/fuselage-hooks';
-import { useTranslation, useEndpoint, useRouter } from '@rocket.chat/ui-contexts';
-import { useQuery, hashKey } from '@tanstack/react-query';
-import { useMemo, useState } from 'react';
-
-import { useRemoveTag } from './useRemoveTag';
-import FilterByText from '../../../components/FilterByText';
-import GenericNoResults from '../../../components/GenericNoResults';
+import { IconButton, Pagination, type TableColumnWidth } from '@rocket.chat/fuselage';
+import { useDebouncedValue, useStableCallback } from '@rocket.chat/fuselage-hooks';
 import {
 	GenericTable,
 	GenericTableRow,
@@ -15,9 +8,16 @@ import {
 	GenericTableHeaderCell,
 	GenericTableBody,
 	GenericTableLoadingRow,
-} from '../../../components/GenericTable';
-import { usePagination } from '../../../components/GenericTable/hooks/usePagination';
-import { useSort } from '../../../components/GenericTable/hooks/useSort';
+	usePagination,
+	useSort,
+	GenericNoResults,
+} from '@rocket.chat/ui-client';
+import { useTranslation, useEndpoint, useRouter } from '@rocket.chat/ui-contexts';
+import { useQuery, hashKey } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
+
+import { useRemoveTag } from './useRemoveTag';
+import FilterByText from '../../../components/FilterByText';
 import { links } from '../../../lib/links';
 
 const TagsTable = () => {
@@ -28,8 +28,8 @@ const TagsTable = () => {
 	const { current, itemsPerPage, setItemsPerPage: onSetItemsPerPage, setCurrent: onSetCurrent, ...paginationProps } = usePagination();
 	const { sortBy, sortDirection, setSort } = useSort<'name' | 'description'>('name');
 
-	const onRowClick = useEffectEvent((id: string) => router.navigate(`/omnichannel/tags/edit/${id}`));
-	const handleAddNew = useEffectEvent(() => router.navigate('/omnichannel/tags/new'));
+	const onRowClick = useStableCallback((id: string) => router.navigate(`/omnichannel/tags/edit/${id}`));
+	const handleAddNew = useStableCallback(() => router.navigate('/omnichannel/tags/new'));
 	const handleDeleteTag = useRemoveTag();
 
 	const query = useDebouncedValue(
@@ -56,6 +56,8 @@ const TagsTable = () => {
 	const [defaultQuery] = useState(hashKey([query]));
 	const queryHasChanged = defaultQuery !== hashKey([query]);
 
+	const columns: TableColumnWidth[] = ['auto', 'auto', 'x60'];
+
 	const headers = (
 		<>
 			<GenericTableHeaderCell key='name' direction={sortDirection} active={sortBy === 'name'} onClick={setSort} sort='name'>
@@ -70,7 +72,7 @@ const TagsTable = () => {
 			>
 				{t('Description')}
 			</GenericTableHeaderCell>
-			<GenericTableHeaderCell key='remove' w='x60' />
+			<GenericTableHeaderCell key='remove' />
 		</>
 	);
 
@@ -80,7 +82,7 @@ const TagsTable = () => {
 				<FilterByText value={filter} onChange={(event) => setFilter(event.target.value)} />
 			)}
 			{isLoading && (
-				<GenericTable>
+				<GenericTable columns={columns}>
 					<GenericTableHeader>{headers}</GenericTableHeader>
 					<GenericTableBody>
 						<GenericTableLoadingRow cols={3} />
@@ -101,17 +103,17 @@ const TagsTable = () => {
 			)}
 			{isSuccess && data?.tags.length > 0 && (
 				<>
-					<GenericTable>
+					<GenericTable columns={columns} aria-label={t('Tags')}>
 						<GenericTableHeader>{headers}</GenericTableHeader>
 						<GenericTableBody>
 							{data?.tags.map(({ _id, name, description }) => (
-								<GenericTableRow key={_id} tabIndex={0} role='link' onClick={() => onRowClick(_id)} action qa-user-id={_id}>
-									<GenericTableCell withTruncatedText>{name}</GenericTableCell>
-									<GenericTableCell withTruncatedText>{description}</GenericTableCell>
+								<GenericTableRow key={_id} tabIndex={0} onClick={() => onRowClick(_id)} action>
+									<GenericTableCell truncate>{name}</GenericTableCell>
+									<GenericTableCell truncate>{description}</GenericTableCell>
 									<GenericTableCell>
 										<IconButton
 											icon='trash'
-											small
+											size='small'
 											title={t('Remove')}
 											onClick={(e) => {
 												e.stopPropagation();

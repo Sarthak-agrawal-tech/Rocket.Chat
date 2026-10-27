@@ -1,4 +1,3 @@
-/* eslint-disable no-await-in-loop */
 import { faker } from '@faker-js/faker';
 import type { Credentials } from '@rocket.chat/api-client';
 import type {
@@ -11,7 +10,7 @@ import type {
 } from '@rocket.chat/core-typings';
 import type { Response } from 'supertest';
 
-import { api, credentials, methodCall, request } from '../api-data';
+import { api, credentials, request } from '../api-data';
 import { imgURL } from '../interactions';
 import { getSettingValueById, restorePermissionToRoles, updateSetting } from '../permissions.helper';
 import { adminUsername } from '../user';
@@ -244,6 +243,13 @@ export const updateDepartment = ({
 	});
 };
 
+export const deleteAgent = async (agentId: string = credentials['X-User-Id']): Promise<void> => {
+	await request
+		.delete(api(`livechat/users/agent/${agentId}`))
+		.set(credentials)
+		.expect(200);
+};
+
 export const createAgent = (overrideUsername?: string): Promise<ILivechatAgent> =>
 	new Promise((resolve, reject) => {
 		void request
@@ -368,25 +374,17 @@ export const uploadFile = (roomId: string, visitorToken: string): Promise<IMessa
 	});
 };
 
-// Sends a message using sendMessage method from agent
 export const sendAgentMessage = (roomId: string, msg?: string, userCredentials: Credentials = credentials): Promise<IMessage> => {
 	return new Promise((resolve, reject) => {
 		void request
-			.post(methodCall('sendMessage'))
+			.post(api('chat.sendMessage'))
 			.set(userCredentials)
-			.send({
-				message: JSON.stringify({
-					method: 'sendMessage',
-					params: [{ rid: roomId, msg: msg || faker.lorem.sentence() }],
-					id: 'id',
-					msg: 'method',
-				}),
-			})
+			.send({ message: { rid: roomId, msg: msg || faker.lorem.sentence() } })
 			.end((err: Error, res: any) => {
 				if (err) {
 					return reject(err);
 				}
-				resolve(JSON.parse(res.body.message).result);
+				resolve(res.body.message);
 			});
 	});
 };
@@ -420,6 +418,25 @@ export const closeOmnichannelRoom = async (roomId: string, tags?: string[]): Pro
 		.set(credentials)
 		.send({ rid: roomId, ...(tags && { tags }), comment: faker.lorem.sentence() })
 		.expect(200);
+};
+
+/**
+ * Closes every open room the agent is serving, which users.delete otherwise refuses with user-last-owner.
+ * Rooms are listed rather than tracked by the test: routing also hands agents inquiries queued by earlier specs.
+ */
+export const closeOpenRoomsServedBy = async (agentId: string): Promise<void> => {
+	const { body } = await request
+		.get(api('livechat/rooms'))
+		.set(credentials)
+		.query({ 'agents[]': agentId, 'open': true, 'count': 100 })
+		.expect(200);
+
+	const rooms = body.rooms as IOmnichannelRoom[];
+	await Promise.all(rooms.map((room) => closeOmnichannelRoom(room._id)));
+
+	if (body.total > rooms.length) {
+		await closeOpenRoomsServedBy(agentId);
+	}
 };
 
 export const bulkCreateLivechatRooms = async (
@@ -480,16 +497,9 @@ export const placeRoomOnHold = async (roomId: string): Promise<void> => {
 
 export const moveBackToQueue = async (roomId: string, overrideCredentials?: Credentials): Promise<void> => {
 	await request
-		.post(methodCall('livechat:returnAsInquiry'))
+		.post(api('livechat/inquiries.returnAsInquiry'))
 		.set(overrideCredentials || credentials)
-		.send({
-			message: JSON.stringify({
-				method: 'livechat:returnAsInquiry',
-				params: [roomId],
-				id: 'id',
-				msg: 'method',
-			}),
-		})
+		.send({ roomId })
 		.expect('Content-Type', 'application/json')
 		.expect(200);
 };

@@ -1,12 +1,7 @@
-import Ajv from 'ajv';
-
-const ajv = new Ajv({
-	coerceTypes: true,
-});
+import { ajv } from '../Ajv';
 
 export type ChannelsGetIntegrationsProps =
-	| { roomId: string; includeAllPublicChannels?: string }
-	| { roomName: string; includeAllPublicChannels?: string };
+	{ roomId: string; includeAllPublicChannels?: string } | { roomName: string; includeAllPublicChannels?: string };
 
 const channelsGetIntegrationsPropsSchema = {
 	oneOf: [

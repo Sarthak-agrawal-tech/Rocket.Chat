@@ -49,8 +49,8 @@ declare module '@rocket.chat/ui-contexts' {
 			pattern: '/admin/integrations/:context?/:type?/:id?';
 		};
 		'user-status': {
-			pathname: `/admin/user-status${`/${string}` | ''}${`/${string}` | ''}`;
-			pattern: '/admin/user-status/:context?/:id?';
+			pathname: `/admin/user-status${`/${string}` | ''}${`/${string}` | ''}${`/${string}` | ''}`;
+			pattern: '/admin/user-status/:tab?/:context?/:id?';
 		};
 		'emoji-custom': {
 			pathname: `/admin/emoji${`/${string}` | ''}${`/${string}` | ''}`;
@@ -69,8 +69,8 @@ declare module '@rocket.chat/ui-contexts' {
 			pattern: '/admin/invites';
 		};
 		'admin-view-logs': {
-			pathname: '/admin/reports';
-			pattern: '/admin/reports';
+			pathname: '/admin/analytic-reports';
+			pattern: '/admin/analytic-reports';
 		};
 		'admin-permissions': {
 			pathname: `/admin/permissions${`/${string}` | ''}${`/${string}` | ''}`;
@@ -103,6 +103,14 @@ declare module '@rocket.chat/ui-contexts' {
 		'admin-feature-preview': {
 			pathname: '/admin/feature-preview';
 			pattern: '/admin/feature-preview';
+		};
+		'admin-ABAC': {
+			pathname: '/admin/ABAC';
+			pattern: '/admin/ABAC/:tab?/:context?/:id?';
+		};
+		'admin-ai-center': {
+			pathname: `/admin/ai-center${`/${string}` | ''}`;
+			pattern: '/admin/ai-center/:section?';
 		};
 	}
 }
@@ -168,9 +176,9 @@ registerAdminRoute('/integrations/:context?/:type?/:id?', {
 	component: lazy(() => import('./integrations/IntegrationsRoute')),
 });
 
-registerAdminRoute('/user-status/:context?/:id?', {
+registerAdminRoute('/user-status/:tab?/:context?/:id?', {
 	name: 'user-status',
-	component: lazy(() => import('./customUserStatus/CustomUserStatusRoute')),
+	component: lazy(() => import('./statusAndPresence/StatusAndPresenceRoute')),
 });
 
 registerAdminRoute('/emoji/:context?/:id?', {
@@ -188,12 +196,17 @@ registerAdminRoute('/rooms/:context?/:id?', {
 	component: lazy(() => import('./rooms/RoomsRoute')),
 });
 
+registerAdminRoute('/ai-center/:section?', {
+	name: 'admin-ai-center',
+	component: lazy(() => import('./aiCenter/AICenterRoute')),
+});
+
 registerAdminRoute('/invites', {
 	name: 'invites',
 	component: lazy(() => import('./invites/InvitesRoute')),
 });
 
-registerAdminRoute('/reports', {
+registerAdminRoute('/analytic-reports', {
 	name: 'admin-view-logs',
 	component: lazy(() => import('./viewLogs/ViewLogsRoute')),
 });
@@ -236,4 +249,9 @@ registerAdminRoute('/subscription', {
 registerAdminRoute('/feature-preview', {
 	name: 'admin-feature-preview',
 	component: lazy(() => import('./featurePreview/AdminFeaturePreviewRoute')),
+});
+
+registerAdminRoute('/ABAC/:tab?/:context?/:id?', {
+	name: 'admin-ABAC',
+	component: lazy(() => import('./ABAC/AdminABACRoute')),
 });

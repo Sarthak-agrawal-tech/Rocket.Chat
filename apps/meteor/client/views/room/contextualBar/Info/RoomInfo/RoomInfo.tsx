@@ -1,11 +1,8 @@
 import type { IRoom } from '@rocket.chat/core-typings';
 import { Box, Callout, IconButton } from '@rocket.chat/fuselage';
 import { RoomAvatar } from '@rocket.chat/ui-avatar';
-import { GenericMenu } from '@rocket.chat/ui-client';
-import { useTranslation } from 'react-i18next';
-
-import RoomInfoActions from './RoomInfoActions';
 import {
+	GenericMenu,
 	ContextualbarHeader,
 	ContextualbarScrollableContent,
 	ContextualbarBack,
@@ -13,8 +10,6 @@ import {
 	ContextualbarClose,
 	ContextualbarTitle,
 	ContextualbarDialog,
-} from '../../../../../components/Contextualbar';
-import {
 	InfoPanel,
 	InfoPanelActionGroup,
 	InfoPanelAvatar,
@@ -23,7 +18,10 @@ import {
 	InfoPanelSection,
 	InfoPanelText,
 	InfoPanelTitle,
-} from '../../../../../components/InfoPanel';
+} from '@rocket.chat/ui-client';
+import { useTranslation } from 'react-i18next';
+
+import RoomInfoActions from './RoomInfoActions';
 import RetentionPolicyCallout from '../../../../../components/InfoPanel/RetentionPolicyCallout';
 import MarkdownText from '../../../../../components/MarkdownText';
 import { useRetentionPolicy } from '../../../hooks/useRetentionPolicy';
@@ -31,7 +29,7 @@ import { useRoomActions } from '../hooks/useRoomActions';
 import { useSplitRoomActions } from '../hooks/useSplitRoomActions';
 import RoomInfoABACSection from './ABAC/RoomInfoABACSection';
 
-type RoomInfoProps = {
+export type RoomInfoProps = {
 	room: IRoom;
 	icon: string;
 	onClickBack?: () => void;
@@ -59,9 +57,9 @@ const RoomInfo = ({ room, icon, onClickBack, onClickClose, onClickEnterRoom, onC
 				{onClickClose && <ContextualbarClose onClick={onClickClose} />}
 			</ContextualbarHeader>
 
-			<ContextualbarScrollableContent p={24}>
+			<ContextualbarScrollableContent padding={24}>
 				<InfoPanel>
-					<InfoPanelSection maxWidth='x332' mi='auto'>
+					<InfoPanelSection maxWidth='x332' marginInline='auto'>
 						<InfoPanelAvatar>
 							<RoomAvatar size='x332' room={room} />
 						</InfoPanelAvatar>
@@ -71,7 +69,7 @@ const RoomInfo = ({ room, icon, onClickBack, onClickClose, onClickEnterRoom, onC
 								<GenericMenu
 									title={t('More')}
 									placement='bottom-end'
-									button={<IconButton icon='kebab' secondary flexShrink={0} flexGrow={0} maxHeight='initial' />}
+									button={<IconButton icon='kebab' variant='secondary' />}
 									sections={menu}
 								/>
 							)}
@@ -80,7 +78,7 @@ const RoomInfo = ({ room, icon, onClickBack, onClickClose, onClickEnterRoom, onC
 
 					{archived && (
 						<InfoPanelSection>
-							<Box mb={16}>
+							<Box marginBlock={16}>
 								<Callout type='warning'>{t('Room_archived')}</Callout>
 							</Box>
 						</InfoPanelSection>

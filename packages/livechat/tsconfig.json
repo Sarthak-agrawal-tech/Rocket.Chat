@@ -1,7 +1,8 @@
 {
 	"extends": "@rocket.chat/tsconfig/client.json",
 	"compilerOptions": {
-		"module": "CommonJS",
+		"module": "preserve",
+		"types": ["node", "jest", "webpack-env"],
 		"outDir": "./dist",
 		"allowJs": true,
 		"checkJs": false,
@@ -11,7 +12,9 @@
 			"react/jsx-runtime": ["../../node_modules/preact/jsx-runtime"],
 			"react-dom": ["../../node_modules/preact/compat/"],
 			"react-dom/*": ["../../node_modules/preact/compat/*"]
-		}
+		},
+		"declaration": false,
+		"declarationMap": false
 	},
 	"include": ["./src", "./webpack.config.ts", "./svg-component-loader.ts", ".storybook/**/*.ts"],
 	"exclude": ["./node_modules", "./dist"]

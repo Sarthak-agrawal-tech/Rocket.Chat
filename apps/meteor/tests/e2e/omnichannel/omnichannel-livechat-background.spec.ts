@@ -1,7 +1,7 @@
 import { createFakeVisitor } from '../../mocks/data';
 import { IS_EE } from '../config/constants';
 import { Users } from '../fixtures/userStates';
-import { OmnichannelLiveChatEmbedded } from '../page-objects';
+import { OmnichannelLiveChatEmbedded } from '../page-objects/omnichannel';
 import { createAgent, makeAgentAvailable } from '../utils/omnichannel/agents';
 import { test, expect } from '../utils/test';
 
@@ -34,7 +34,7 @@ test.describe('OC - Livechat - Message list background', async () => {
 	test.beforeEach(async ({ page }) => {
 		poLiveChat = new OmnichannelLiveChatEmbedded(page);
 
-		await page.goto('/packages/rocketchat_livechat/assets/demo.html');
+		await poLiveChat.goto();
 	});
 
 	test.afterEach(async ({ page }) => {

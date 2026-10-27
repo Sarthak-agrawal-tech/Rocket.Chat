@@ -3,7 +3,8 @@ import type { Page } from '@playwright/test';
 import { createFakeVisitor } from '../../mocks/data';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { OmnichannelLiveChat, HomeOmnichannel } from '../page-objects';
+import { HomeOmnichannel } from '../page-objects';
+import { OmnichannelLiveChat } from '../page-objects/omnichannel';
 import { test, expect } from '../utils/test';
 
 test.use({ storageState: Users.admin.state });
@@ -40,7 +41,7 @@ test.describe('OC - Livechat Triggers - Time on site', () => {
 
 	test.beforeEach(async ({ page, api }) => {
 		poLiveChat = new OmnichannelLiveChat(page, api);
-		await page.goto('/livechat');
+		await poLiveChat.goto();
 	});
 
 	test.afterAll(async ({ api }) => {

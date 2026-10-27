@@ -6,7 +6,8 @@ export default {
 	transformIgnorePatterns: [
 		'<rootDir>/node_modules/@babel',
 		'<rootDir>/node_modules/@jest',
-		'/node_modules/(?!marked|@testing-library/)',
+		// sanitize-html vendors its own (ESM-only) htmlparser2 + friends under a nested node_modules
+		'/node_modules/(?!marked|@testing-library/|(dom-serializer|domelementtype|domhandler|domutils|entities|htmlparser2)/|sanitize-html/node_modules/)',
 	],
 	// Exclude integration/e2e tests from unit test runs
 	testPathIgnorePatterns: ['<rootDir>/tests/end-to-end/'],

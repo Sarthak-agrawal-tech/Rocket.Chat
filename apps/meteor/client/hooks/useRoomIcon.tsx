@@ -1,14 +1,13 @@
 import type { IRoom } from '@rocket.chat/core-typings';
-import { isRoomFederated, isDirectMessageRoom } from '@rocket.chat/core-typings';
+import { isRoomFederated, isRoomXMPPFederated, isDirectMessageRoom } from '@rocket.chat/core-typings';
 import type { Icon } from '@rocket.chat/fuselage';
 import type { ComponentProps, ReactElement } from 'react';
 
 import { ReactiveUserStatus } from '../components/UserStatus';
 
 export const useRoomIcon = (
-	room: Pick<IRoom, 't' | 'prid' | 'teamMain' | 'uids' | 'u'>,
-): ComponentProps<typeof Icon> | ReactElement | null => {
-	// @ts-expect-error TODO: Implement ABAC attributes in rooms
+	room: Pick<IRoom, 't' | 'prid' | 'teamMain' | 'uids' | 'u' | 'abacAttributes'>,
+): ComponentProps<typeof Icon> | ReactElement<any> | null => {
 	if (room.abacAttributes) {
 		if (room.teamMain) {
 			return { name: 'team-shield' };
@@ -16,7 +15,7 @@ export const useRoomIcon = (
 		return { name: 'hash-shield' };
 	}
 
-	if (isRoomFederated(room)) {
+	if (isRoomFederated(room) || isRoomXMPPFederated(room)) {
 		return { name: 'globe' };
 	}
 

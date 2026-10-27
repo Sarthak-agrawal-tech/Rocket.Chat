@@ -9,11 +9,11 @@ test.describe.serial('settings-assets', () => {
 
 	test.beforeEach(async ({ page }) => {
 		poAdminSettings = new AdminSettings(page);
-		await page.goto('/admin/settings');
+		await poAdminSettings.goto();
 
 		await poAdminSettings.btnAssetsSettings.click();
-		// FIXME: This is not good practice. We should look for a better way to ensure the page is loaded
-		await expect(page.locator('[data-qa-type="PageHeader-title"]')).toHaveText('Assets');
+
+		await expect(page.getByRole('main').getByRole('heading', { level: 1, name: 'Assets', exact: true })).toBeVisible();
 	});
 
 	test('expect upload and delete logo asset and label should be visible', async ({ page }) => {

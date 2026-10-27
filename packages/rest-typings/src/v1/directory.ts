@@ -1,26 +1,16 @@
-import type { IRoom, IUser, ITeam } from '@rocket.chat/core-typings';
-import Ajv from 'ajv';
+import type { IDirectoryChannelResult, IDirectoryUserResult } from '@rocket.chat/core-typings';
 
+import { ajv } from './Ajv';
+import { paginationQueryProperties } from './pagination';
 import type { PaginatedRequest } from '../helpers/PaginatedRequest';
 import type { PaginatedResult } from '../helpers/PaginatedResult';
 
-const ajv = new Ajv({
-	coerceTypes: true,
-});
-
-type DirectoryProps = PaginatedRequest<{ text?: string; type?: string; workspace?: string; query?: string }>;
+type DirectoryProps = PaginatedRequest<{ text?: string; type?: string; workspace?: string }>;
 
 const DirectorySchema = {
 	type: 'object',
 	properties: {
-		count: {
-			type: 'number',
-			nullable: true,
-		},
-		offset: {
-			type: 'number',
-			nullable: true,
-		},
+		...paginationQueryProperties,
 		sort: {
 			type: 'string',
 			nullable: true,
@@ -37,10 +27,6 @@ const DirectorySchema = {
 			type: 'string',
 			nullable: true,
 		},
-		query: {
-			type: 'string',
-			nullable: true,
-		},
 	},
 	required: [],
 	additionalProperties: false,
@@ -50,6 +36,6 @@ export const isDirectoryProps = ajv.compile<DirectoryProps>(DirectorySchema);
 
 export type DirectoryEndpoint = {
 	'/v1/directory': {
-		GET: (params: DirectoryProps) => PaginatedResult<{ result: (IUser | IRoom | ITeam)[] }>;
+		GET: (params: DirectoryProps) => PaginatedResult<{ result: (IDirectoryUserResult | IDirectoryChannelResult)[] }>;
 	};
 };

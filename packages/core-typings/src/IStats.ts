@@ -1,12 +1,13 @@
-import type { CpuInfo } from 'os';
+import type { CpuInfo } from 'node:os';
 
 import type { IMatrixFederationStatistics } from './IMatrixFederationStatistics';
+import type { IRocketChatRecord } from './IRocketChatRecord';
 import type { DeviceSessionAggregationResult, OSSessionAggregationResult, UserSessionAggregationResult } from './ISession';
 import type { ISettingStatisticsObject } from './ISetting';
 import type { ITeamStats } from './ITeam';
 import type { MACStats } from './omnichannel';
 
-export interface IVoIPPeriodStats {
+interface IVoIPPeriodStats {
 	calls?: number;
 	externalInboundCalls?: number;
 	externalOutboundCalls?: number;
@@ -17,8 +18,7 @@ export interface IVoIPPeriodStats {
 	callsDuration?: number;
 }
 
-export interface IStats {
-	_id: string;
+export interface IStats extends IRocketChatRecord {
 	wizard: {
 		organizationType?: string;
 		industry?: string;
@@ -71,8 +71,6 @@ export interface IStats {
 	totalLivechatRoomsWithDepartment: number;
 	totalTriggers: number;
 	totalMessages: number;
-	federatedServers: number;
-	federatedUsers: number;
 	lastLogin: string;
 	lastMessageSentAt: Date | undefined;
 	lastSeenSubscription: string;
@@ -134,11 +132,6 @@ export interface IStats {
 	voipSuccessfulCalls: number;
 	voipErrorCalls: number;
 	voipOnHoldCalls: number;
-	federationOverviewData: {
-		numberOfEvents: number;
-		numberOfFederatedUsers: number;
-		numberOfServers: number;
-	};
 	readReceiptsEnabled: boolean;
 	readReceiptsDetailed: boolean;
 	uniqueUsersOfLastWeek: UserSessionAggregationResult;
@@ -176,7 +169,6 @@ export interface IStats {
 		priorities?: number;
 		slas?: number;
 		businessUnits?: number;
-		omnichannelPdfTranscriptRequested?: number;
 		omnichannelPdfTranscriptSucceeded?: number;
 		omnichannelRoomsWithSlas?: number;
 		omnichannelRoomsWithPriorities?: number;
@@ -189,8 +181,6 @@ export interface IStats {
 		};
 	};
 	createdAt: Date | string;
-	totalOTR: number;
-	totalOTRRooms: number;
 	slashCommandsJitsi: number;
 	messageAuditApply: number;
 	messageAuditLoad: number;
@@ -271,4 +261,9 @@ export interface IStats {
 		totalUpsellViews: number;
 		totalUpsellClicks: number;
 	};
+	abacEnabled?: boolean;
+	abacTotalAttributes?: number;
+	abacTotalAttributeValues?: number;
+	abacRoomsEnrolled?: number;
+	fips?: boolean;
 }

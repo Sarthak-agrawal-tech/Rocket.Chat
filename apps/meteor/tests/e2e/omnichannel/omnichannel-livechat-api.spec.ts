@@ -5,7 +5,8 @@ import { createFakeVisitor } from '../../mocks/data';
 import { IS_EE } from '../config/constants';
 import { createAuxContext } from '../fixtures/createAuxContext';
 import { Users } from '../fixtures/userStates';
-import { HomeOmnichannel, OmnichannelLiveChatEmbedded } from '../page-objects';
+import { HomeOmnichannel } from '../page-objects';
+import { OmnichannelLiveChatEmbedded } from '../page-objects/omnichannel';
 import { createAgent } from '../utils/omnichannel/agents';
 import { addAgentToDepartment, createDepartment } from '../utils/omnichannel/departments';
 import { test, expect } from '../utils/test';
@@ -91,7 +92,7 @@ test.describe('OC - Livechat API', () => {
 			const { page: pageCtx } = await createAuxContext(browser, Users.user1);
 			poAuxContext = { page: pageCtx, poHomeOmnichannel: new HomeOmnichannel(pageCtx) };
 
-			await page.goto('/packages/rocketchat_livechat/assets/demo.html');
+			await poLiveChat.goto();
 		});
 
 		test.afterAll(async () => {
@@ -102,13 +103,13 @@ test.describe('OC - Livechat API', () => {
 			await test.step('Expect widget to be visible after maximizeWidget()', async () => {
 				await poLiveChat.page.evaluate(() => window.RocketChat.livechat.maximizeWidget());
 
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 			});
 
 			await test.step('Expect widget not be visible after minimizeWidget()', async () => {
 				await poLiveChat.page.evaluate(() => window.RocketChat.livechat.minimizeWidget());
 
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 			});
 		});
 
@@ -142,7 +143,7 @@ test.describe('OC - Livechat API', () => {
 				await poLiveChat.page.evaluate(() => window.RocketChat.livechat.setLanguage('pt-BR'));
 
 				await expect(
-					page.frameLocator('#rocketchat-iframe').getByText('Por favor, nos passe algumas informações antes de iniciar o chat'),
+					page.frameLocator('#rocketchat-iframe').getByText('Por favor, conte-nos algumas informações para iniciarmos o chat'),
 				).toBeVisible();
 			});
 
@@ -265,12 +266,12 @@ test.describe('OC - Livechat API', () => {
 
 			// This is needed since the livechat will not react to online/offline status changes if already loaded in a page
 			if (testInfo.title === 'Expect onOfflineFormSubmit to trigger callback') {
-				await poAuxContext.poHomeOmnichannel.sidenav.switchStatus('offline');
+				await poAuxContext.poHomeOmnichannel.navbar.changeUserStatus('offline');
 			} else {
-				await poAuxContext.poHomeOmnichannel.sidenav.switchStatus('online');
+				await poAuxContext.poHomeOmnichannel.navbar.changeUserStatus('online');
 			}
 
-			await page.goto('/packages/rocketchat_livechat/assets/demo.html');
+			await poLiveChat.goto();
 		});
 
 		test.afterEach(async () => {
@@ -350,22 +351,22 @@ test.describe('OC - Livechat API', () => {
 					department: departmentA._id,
 				});
 
-				// Start Chat
+				// Start chat
 				await poLiveChat.page.evaluate(() => window.RocketChat.livechat.maximizeWidget());
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 
 				await poLiveChat.page.evaluate(
 					(registerGuestVisitor) => window.RocketChat.livechat.registerGuest(registerGuestVisitor),
 					registerGuestVisitor,
 				);
 
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 
 				await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor');
 				await poLiveChat.btnSendMessageToOnlineAgent.click();
 
 				await test.step('Expect registered guest to be in dep1', async () => {
-					await poAuxContext.poHomeOmnichannel.sidenav.openChat(registerGuestVisitor.name);
+					await poAuxContext.poHomeOmnichannel.navbar.openChat(registerGuestVisitor.name);
 					await expect(poAuxContext.poHomeOmnichannel.content.channelHeader).toContainText(registerGuestVisitor.name);
 				});
 
@@ -374,15 +375,13 @@ test.describe('OC - Livechat API', () => {
 				await test.step('Expect chat not be transferred', async () => {
 					await poLiveChat.page.evaluate((depId) => window.RocketChat.livechat.setDepartment(depId), depId);
 
-					await poAuxContext2.page.locator('role=navigation >> role=button[name=Search]').click();
-					await poAuxContext2.page.locator('role=search >> role=searchbox').fill(registerGuestVisitor.name);
-					await expect(
-						poAuxContext2.page.locator(`role=search >> role=listbox >> role=link >> text="${registerGuestVisitor.name}"`),
-					).not.toBeVisible();
+					await poAuxContext2.poHomeOmnichannel.navbar.searchInput.click();
+					await poAuxContext2.poHomeOmnichannel.navbar.typeSearch(registerGuestVisitor.name);
+					await expect(poAuxContext2.poHomeOmnichannel.navbar.getSearchRoomByName(registerGuestVisitor.name)).not.toBeVisible();
 				});
 
 				await test.step('Expect registered guest to still be in dep1', async () => {
-					await poAuxContext.poHomeOmnichannel.sidenav.openChat(registerGuestVisitor.name);
+					await poAuxContext.poHomeOmnichannel.navbar.openChat(registerGuestVisitor.name);
 					await expect(poAuxContext.poHomeOmnichannel.content.channelHeader).toContainText(registerGuestVisitor.name);
 				});
 			});
@@ -396,7 +395,7 @@ test.describe('OC - Livechat API', () => {
 				await poLiveChat.page.evaluate((depId) => window.RocketChat.livechat.setDepartment(depId), depId);
 
 				await poLiveChat.page.evaluate(() => window.RocketChat.livechat.maximizeWidget());
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 
 				await poLiveChat.sendMessage(registerGuestVisitor, false);
 
@@ -404,9 +403,8 @@ test.describe('OC - Livechat API', () => {
 				await poLiveChat.btnSendMessageToOnlineAgent.click();
 
 				await test.step('Expect registered guest to be in dep2', async () => {
-					await poAuxContext2.page.locator('role=navigation >> role=button[name=Search]').click();
-					await poAuxContext2.page.locator('role=search >> role=searchbox').fill(registerGuestVisitor.name);
-					await poAuxContext2.page.locator(`role=search >> role=listbox >> role=link >> text="${registerGuestVisitor.name}"`).click();
+					await poAuxContext2.poHomeOmnichannel.navbar.openChat(registerGuestVisitor.name);
+
 					await poAuxContext2.page.locator('role=main').waitFor();
 					await poAuxContext2.page.locator('role=main >> role=heading[level=1]').waitFor();
 					await expect(poAuxContext2.page.locator('role=main >> .rcx-skeleton')).toHaveCount(0);
@@ -414,11 +412,8 @@ test.describe('OC - Livechat API', () => {
 				});
 
 				await test.step('Expect registered guest not to be in dep1', async () => {
-					await poAuxContext.page.locator('role=navigation >> role=button[name=Search]').click();
-					await poAuxContext.page.locator('role=search >> role=searchbox').fill(registerGuestVisitor.name);
-					await expect(
-						poAuxContext.page.locator(`role=search >> role=listbox >> role=link >> text="${registerGuestVisitor.name}"`),
-					).not.toBeVisible();
+					await poAuxContext.poHomeOmnichannel.navbar.typeSearch(registerGuestVisitor.name);
+					await expect(poAuxContext.poHomeOmnichannel.navbar.getSearchRoomByName(registerGuestVisitor.name)).not.toBeVisible();
 				});
 			});
 		});
@@ -441,22 +436,22 @@ test.describe('OC - Livechat API', () => {
 					department: departmentA._id,
 				});
 
-				// Start Chat
+				// Start chat
 				await poLiveChat.page.evaluate(() => window.RocketChat.livechat.maximizeWidget());
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 
 				await poLiveChat.page.evaluate(
 					(registerGuestVisitor) => window.RocketChat.livechat.registerGuest(registerGuestVisitor),
 					registerGuestVisitor,
 				);
 
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 
 				await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor');
 				await poLiveChat.btnSendMessageToOnlineAgent.click();
 
 				await test.step('Expect registered guest to be in dep1', async () => {
-					await poAuxContext.poHomeOmnichannel.sidenav.openChat(registerGuestVisitor.name);
+					await poAuxContext.poHomeOmnichannel.navbar.openChat(registerGuestVisitor.name);
 					await expect(poAuxContext.poHomeOmnichannel.content.channelHeader).toContainText(registerGuestVisitor.name);
 				});
 
@@ -465,11 +460,9 @@ test.describe('OC - Livechat API', () => {
 				await test.step('Expect chat to be transferred', async () => {
 					await poLiveChat.page.evaluate((depId) => window.RocketChat.livechat.transferChat(depId), depId);
 
-					await poAuxContext2.page.locator('role=navigation >> role=button[name=Search]').click();
-					await poAuxContext2.page.locator('role=search >> role=searchbox').fill(registerGuestVisitor.name);
-					await expect(
-						poAuxContext2.page.locator(`role=search >> role=listbox >> role=link >> text="${registerGuestVisitor.name}"`),
-					).toBeVisible();
+					await poAuxContext2.poHomeOmnichannel.navbar.openChat(registerGuestVisitor.name);
+					await poAuxContext2.poHomeOmnichannel.navbar.typeSearch(registerGuestVisitor.name);
+					await expect(poAuxContext2.poHomeOmnichannel.navbar.getSearchRoomByName(registerGuestVisitor.name)).toBeVisible();
 				});
 			});
 		});
@@ -479,41 +472,43 @@ test.describe('OC - Livechat API', () => {
 
 			await test.step('Expect registerGuest to create a valid guest', async () => {
 				await poLiveChat.page.evaluate(() => window.RocketChat.livechat.maximizeWidget());
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 
 				await poLiveChat.page.evaluate(
 					(registerGuestVisitor) => window.RocketChat.livechat.registerGuest(registerGuestVisitor),
 					registerGuestVisitor,
 				);
 
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 
 				await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor');
 				await poLiveChat.btnSendMessageToOnlineAgent.click();
 			});
 
 			await test.step('Expect registered guest to have valid info', async () => {
-				await poAuxContext.poHomeOmnichannel.sidenav.openChat(registerGuestVisitor.name);
+				await poAuxContext.poHomeOmnichannel.navbar.openChat(registerGuestVisitor.name);
 
 				await poAuxContext.poHomeOmnichannel.roomToolbar.openContactInfo();
 				// For some reason the guest info email information is being set to lowercase
-				await expect(poAuxContext.poHomeOmnichannel.content.infoContactEmail).toHaveText(registerGuestVisitor.email.toLowerCase());
+				await expect(poAuxContext.poHomeOmnichannel.contacts.contactInfo.infoContactEmail).toHaveText(
+					registerGuestVisitor.email.toLowerCase(),
+				);
 			});
 
 			await test.step('Expect registerGuest to log in an existing guest and load chat history', async () => {
 				({ page: pageContext } = await createAuxContext(browser, Users.user1));
 
-				await pageContext.goto('/packages/rocketchat_livechat/assets/demo.html');
+				await new OmnichannelLiveChatEmbedded(pageContext).goto();
 
 				await pageContext.evaluate(() => window.RocketChat.livechat.maximizeWidget());
-				await expect(pageContext.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+				await expect(pageContext.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 
 				await pageContext.evaluate(
 					(registerGuestVisitor) => window.RocketChat.livechat.registerGuest(registerGuestVisitor),
 					registerGuestVisitor,
 				);
 
-				await expect(pageContext.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+				await expect(pageContext.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 				await expect(pageContext.frameLocator('#rocketchat-iframe').getByText('this_a_test_message_from_visitor')).toBeVisible();
 			});
 		});
@@ -525,21 +520,21 @@ test.describe('OC - Livechat API', () => {
 
 			await test.step('Expect registerGuest to create guest 1', async () => {
 				await poLiveChat.page.evaluate(() => window.RocketChat.livechat.maximizeWidget());
-				await expect(poLiveChat.page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+				await expect(poLiveChat.page.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 
 				await poLiveChat.page.evaluate(
 					(registerGuestVisitor1) => window.RocketChat.livechat.registerGuest(registerGuestVisitor1),
 					registerGuestVisitor1,
 				);
 
-				await expect(poLiveChat.page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+				await expect(poLiveChat.page.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 
 				await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor_1');
 				await poLiveChat.btnSendMessageToOnlineAgent.click();
 
 				await expect(poLiveChat.txtChatMessage('this_a_test_message_from_visitor_1')).toBeVisible();
 
-				await poAuxContext.poHomeOmnichannel.sidenav.openChat(registerGuestVisitor1.name);
+				await poAuxContext.poHomeOmnichannel.navbar.openChat(registerGuestVisitor1.name);
 				await poAuxContext.poHomeOmnichannel.content.sendMessage('this_is_a_test_message_from_agent');
 				await expect(poLiveChat.txtChatMessage('this_is_a_test_message_from_agent')).toBeVisible();
 			});
@@ -558,7 +553,7 @@ test.describe('OC - Livechat API', () => {
 					.getByText('this_a_test_message_from_visitor_1')
 					.waitFor({ state: 'hidden' });
 
-				await expect(poLiveChat.page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+				await expect(poLiveChat.page.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 
 				await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor_2');
 				await poLiveChat.btnSendMessageToOnlineAgent.click();
@@ -573,26 +568,28 @@ test.describe('OC - Livechat API', () => {
 
 			await test.step('Expect registerGuest work with the same token, multiple times', async () => {
 				await poLiveChat.page.evaluate(() => window.RocketChat.livechat.maximizeWidget());
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 
 				await poLiveChat.page.evaluate(
 					(registerGuestVisitor) => window.RocketChat.livechat.registerGuest(registerGuestVisitor),
 					registerGuestVisitor,
 				);
 
-				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+				await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 
 				await poLiveChat.onlineAgentMessage.fill('this_a_test_message_from_visitor');
 				await poLiveChat.btnSendMessageToOnlineAgent.click();
 
 				await expect(poLiveChat.txtChatMessage('this_a_test_message_from_visitor')).toBeVisible();
 
+				const visitorResponse = page.waitForResponse('**/api/v1/livechat/visitor');
+
 				await poLiveChat.page.evaluate((registerGuestVisitor) => {
 					window.RocketChat.livechat.registerGuest(registerGuestVisitor);
 					window.RocketChat.livechat.registerGuest(registerGuestVisitor);
 				}, registerGuestVisitor);
 
-				await page.waitForResponse('**/api/v1/livechat/visitor');
+				await visitorResponse;
 				await page.waitForTimeout(500); // NOTE: timeout is necessary to allow websocket unsubscribes to happen
 
 				await poLiveChat.onlineAgentMessage.fill('this_a_new_test_message_from_visitor');
@@ -605,16 +602,16 @@ test.describe('OC - Livechat API', () => {
 
 		test.skip('OC - Livechat API - setGuestEmail', async () => {
 			const registerGuestVisitor = createFakeVisitorRegistration();
-			// Start Chat
+			// Start chat
 			await poLiveChat.page.evaluate(() => window.RocketChat.livechat.maximizeWidget());
-			await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+			await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 
 			await poLiveChat.page.evaluate(
 				(registerGuestVisitor) => window.RocketChat.livechat.registerGuest(registerGuestVisitor),
 				registerGuestVisitor,
 			);
 
-			await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+			await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 
 			await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor');
 			await poLiveChat.btnSendMessageToOnlineAgent.click();
@@ -627,11 +624,11 @@ test.describe('OC - Livechat API', () => {
 			});
 
 			await test.step('Expect registered guest to have valid info', async () => {
-				await poAuxContext.poHomeOmnichannel.sidenav.openChat(registerGuestVisitor.name);
+				await poAuxContext.poHomeOmnichannel.navbar.openChat(registerGuestVisitor.name);
 
 				await poAuxContext.poHomeOmnichannel.roomToolbar.openContactInfo();
 				// For some reason the guest info email information is being set to lowercase
-				await expect(poAuxContext.poHomeOmnichannel.content.infoContactEmail).toHaveText(
+				await expect(poAuxContext.poHomeOmnichannel.contacts.contactInfo.infoContactEmail).toHaveText(
 					`changed${registerGuestVisitor.email}`.toLowerCase(),
 				);
 			});
@@ -639,21 +636,21 @@ test.describe('OC - Livechat API', () => {
 
 		test('OC - Livechat API - setGuestName', async () => {
 			const registerGuestVisitor = createFakeVisitorRegistration();
-			// Start Chat
+			// Start chat
 			await poLiveChat.page.evaluate(() => window.RocketChat.livechat.maximizeWidget());
-			await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+			await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 
 			await poLiveChat.page.evaluate(
 				(registerGuestVisitor) => window.RocketChat.livechat.registerGuest(registerGuestVisitor),
 				registerGuestVisitor,
 			);
 
-			await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+			await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 
 			await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor');
 			await poLiveChat.btnSendMessageToOnlineAgent.click();
 
-			await poAuxContext.poHomeOmnichannel.sidenav.openChat(registerGuestVisitor.name);
+			await poAuxContext.poHomeOmnichannel.navbar.openChat(registerGuestVisitor.name);
 
 			await test.step('Expect setGuestEmail to change a guest email', async () => {
 				await poLiveChat.page.evaluate(
@@ -678,7 +675,7 @@ test.describe('OC - Livechat API', () => {
 				registerGuestVisitor,
 			);
 
-			await expect(page.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+			await expect(page.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 
 			await poLiveChat.onlineAgentMessage.type('this_a_test_message_from_visitor');
 			await poLiveChat.btnSendMessageToOnlineAgent.click();
@@ -686,17 +683,17 @@ test.describe('OC - Livechat API', () => {
 			await test.step('Expect setGuestToken to log in an existing guest and load chat history', async () => {
 				({ page: pageContext } = await createAuxContext(browser, Users.user1));
 
-				await pageContext.goto('/packages/rocketchat_livechat/assets/demo.html');
+				await new OmnichannelLiveChatEmbedded(pageContext).goto();
 
 				await pageContext.evaluate(() => window.RocketChat.livechat.maximizeWidget());
-				await expect(pageContext.frameLocator('#rocketchat-iframe').getByText('Start Chat')).toBeVisible();
+				await expect(pageContext.frameLocator('#rocketchat-iframe').getByText('Start chat')).toBeVisible();
 
 				await pageContext.evaluate(
 					(registerGuestVisitor) => window.RocketChat.livechat.setGuestToken(registerGuestVisitor.token),
 					registerGuestVisitor,
 				);
 
-				await expect(pageContext.frameLocator('#rocketchat-iframe').getByText('Start Chat')).not.toBeVisible();
+				await expect(pageContext.frameLocator('#rocketchat-iframe').getByText('Start chat')).not.toBeVisible();
 				await expect(pageContext.frameLocator('#rocketchat-iframe').getByText('this_a_test_message_from_visitor')).toBeVisible();
 			});
 		});
@@ -726,12 +723,12 @@ test.describe('OC - Livechat API', () => {
 
 			// This is needed since the livechat will not react to online/offline status changes if already loaded in a page
 			if (testInfo.title === 'Expect onOfflineFormSubmit to trigger callback') {
-				await poAuxContext.poHomeOmnichannel.sidenav.switchStatus('offline');
+				await poAuxContext.poHomeOmnichannel.navbar.changeUserStatus('offline');
 			} else {
-				await poAuxContext.poHomeOmnichannel.sidenav.switchStatus('online');
+				await poAuxContext.poHomeOmnichannel.navbar.changeUserStatus('online');
 			}
 
-			await page.goto('/packages/rocketchat_livechat/assets/demo.html');
+			await poLiveChat.goto();
 		});
 
 		test.afterEach(async () => {
@@ -801,7 +798,7 @@ test.describe('OC - Livechat API', () => {
 					}),
 				);
 
-				await poAuxContext.poHomeOmnichannel.sidenav.openChat(newVisitor.name);
+				await poAuxContext.poHomeOmnichannel.navbar.openChat(newVisitor.name);
 				await poAuxContext.poHomeOmnichannel.quickActionsRoomToolbar.closeChat({ comment: 'this_is_a_test_comment' });
 				await watchForTrigger;
 			});
@@ -859,8 +856,8 @@ test.describe('OC - Livechat API', () => {
 				}),
 			);
 
-			await poAuxContext.poHomeOmnichannel.sidenav.openChat(newVisitor.name);
-			await poAuxContext.poHomeOmnichannel.sidenav.switchStatus('offline');
+			await poAuxContext.poHomeOmnichannel.navbar.openChat(newVisitor.name);
+			await poAuxContext.poHomeOmnichannel.navbar.changeUserStatus('offline');
 
 			await watchForTrigger;
 		});
@@ -868,8 +865,8 @@ test.describe('OC - Livechat API', () => {
 		test('OC - Livechat API - onOfflineFormSubmit', async () => {
 			const newVisitor = createFakeVisitor();
 
-			await poAuxContext.poHomeOmnichannel.sidenav.switchStatus('offline');
-			await poAuxContext.poHomeOmnichannel.sidenav.switchOmnichannelStatus('offline');
+			await poAuxContext.poHomeOmnichannel.navbar.changeUserStatus('offline');
+			await poAuxContext.poHomeOmnichannel.navbar.switchOmnichannelStatus('offline');
 
 			const watchForTrigger = page.waitForFunction(() => window.onOfflineFormSubmit === true);
 

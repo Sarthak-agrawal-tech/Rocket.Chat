@@ -1,10 +1,14 @@
+import type { RoomToolboxActionConfig } from '@rocket.chat/ui-contexts';
+
 import { useChatForwardQuickAction } from './hooks/quickActions/useChatForwardQuickAction';
 import { useCloseChatQuickAction } from './hooks/quickActions/useCloseChatQuickAction';
 import { useMoveQueueQuickAction } from './hooks/quickActions/useMoveQueueQuickAction';
 import { useOnHoldChatQuickAction } from './hooks/quickActions/useOnHoldChatQuickAction';
 import { useTranscriptQuickAction } from './hooks/quickActions/useTranscriptQuickAction';
+import { useAbacAttributesRoomAction } from './hooks/roomActions/useAbacAttributesRoomAction';
 import { useAppsRoomStarActions } from './hooks/roomActions/useAppsRoomStarActions';
 import { useAutotranslateRoomAction } from './hooks/roomActions/useAutotranslateRoomAction';
+import { useBannedUsersRoomAction } from './hooks/roomActions/useBannedUsersRoomAction';
 import { useCallsRoomAction } from './hooks/roomActions/useCallsRoomAction';
 import { useChannelSettingsRoomAction } from './hooks/roomActions/useChannelSettingsRoomAction';
 import { useCleanHistoryRoomAction } from './hooks/roomActions/useCleanHistoryRoomAction';
@@ -12,11 +16,9 @@ import { useDiscussionsRoomAction } from './hooks/roomActions/useDiscussionsRoom
 import { useE2EERoomAction } from './hooks/roomActions/useE2EERoomAction';
 import { useExportMessagesRoomAction } from './hooks/roomActions/useExportMessagesRoomAction';
 import { useGameCenterRoomAction } from './hooks/roomActions/useGameCenterRoomAction';
-import { useKeyboardShortcutListRoomAction } from './hooks/roomActions/useKeyboardShortcutListRoomAction';
 import { useMediaCallRoomAction } from './hooks/roomActions/useMediaCallRoomAction';
 import { useMembersListRoomAction } from './hooks/roomActions/useMembersListRoomAction';
 import { useMentionsRoomAction } from './hooks/roomActions/useMentionsRoomAction';
-import { useOTRRoomAction } from './hooks/roomActions/useOTRRoomAction';
 import { useOutlookCalenderRoomAction } from './hooks/roomActions/useOutlookCalenderRoomAction';
 import { usePinnedMessagesRoomAction } from './hooks/roomActions/usePinnedMessagesRoomAction';
 import { usePushNotificationsRoomAction } from './hooks/roomActions/usePushNotificationsRoomAction';
@@ -29,13 +31,10 @@ import { useUploadedFilesListRoomAction } from './hooks/roomActions/useUploadedF
 import { useUserInfoGroupRoomAction } from './hooks/roomActions/useUserInfoGroupRoomAction';
 import { useUserInfoRoomAction } from './hooks/roomActions/useUserInfoRoomAction';
 import { useVideoCallRoomAction } from './hooks/roomActions/useVideoCallRoomAction';
-import { useWebRTCVideoRoomAction } from './hooks/roomActions/useWebRTCVideoRoomAction';
 import { useCannedResponsesRoomAction } from './views/omnichannel/hooks/useCannedResponsesRoomAction';
 import { useContactProfileRoomAction } from './views/omnichannel/hooks/useContactProfileRoomAction';
 import { useOmnichannelExternalFrameRoomAction } from './views/omnichannel/hooks/useOmnichannelExternalFrameRoomAction';
 import { useRoomInfoRoomAction } from './views/omnichannel/hooks/useRoomInfoRoomAction';
-import { useVoIPRoomInfoRoomAction } from './views/omnichannel/hooks/useVoIPRoomInfoRoomAction';
-import type { RoomToolboxActionConfig } from './views/room/contexts/RoomToolboxContext';
 import type { QuickActionsActionConfig } from './views/room/lib/quickActions';
 
 export const roomActionHooks = [
@@ -53,10 +52,10 @@ export const roomActionHooks = [
 	useE2EERoomAction,
 	useExportMessagesRoomAction,
 	useGameCenterRoomAction,
-	useKeyboardShortcutListRoomAction,
+	useBannedUsersRoomAction,
 	useMembersListRoomAction,
+	useAbacAttributesRoomAction,
 	useMentionsRoomAction,
-	useOTRRoomAction,
 	useOmnichannelExternalFrameRoomAction,
 	useOutlookCalenderRoomAction,
 	usePinnedMessagesRoomAction,
@@ -66,8 +65,6 @@ export const roomActionHooks = [
 	useStarredMessagesRoomAction,
 	useTeamChannelsRoomAction,
 	useUploadedFilesListRoomAction,
-	useVoIPRoomInfoRoomAction,
-	useWebRTCVideoRoomAction,
 	useAppsRoomStarActions,
 	useVideoCallRoomAction,
 	useMediaCallRoomAction,

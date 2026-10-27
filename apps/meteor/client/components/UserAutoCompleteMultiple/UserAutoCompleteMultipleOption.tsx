@@ -1,32 +1,42 @@
-import type { IUser } from '@rocket.chat/core-typings';
 import { Option, OptionDescription } from '@rocket.chat/fuselage';
-import { UserAvatar } from '@rocket.chat/ui-avatar';
-import type { ReactElement } from 'react';
+import { ITEM_MEDIA_SIZE, UserAvatar } from '@rocket.chat/ui-avatar';
+import { useSetting } from '@rocket.chat/ui-contexts';
+import type { MouseEventHandler } from 'react';
+import { useTranslation } from 'react-i18next';
 
-type UserAutoCompleteMultipleOptionProps = {
-	label: {
-		_federated?: boolean;
-	} & Pick<IUser, 'username' | 'name'>;
+import type { UserLabel } from './UserAutoCompleteMultipleOptions';
+import { normalizeUsername } from '../../../lib/utils/normalizeUsername';
+
+export type UserAutoCompleteMultipleOptionProps = {
+	label: UserLabel;
+	value: string | number;
+	selected?: boolean;
+	focus?: boolean;
+	disabled?: boolean;
+	role?: string;
+	onMouseDown?: MouseEventHandler;
 };
 
-const UserAutoCompleteMultipleOption = ({ label, ...props }: UserAutoCompleteMultipleOptionProps): ReactElement => {
-	const { name, username, _federated } = label;
+const UserAutoCompleteMultipleOption = ({ label, ...props }: UserAutoCompleteMultipleOptionProps) => {
+	const { t } = useTranslation();
+	const { name, _federated } = label;
+	const useRealName = useSetting('UI_Use_Real_Name');
+	const username = normalizeUsername(label.username);
+	const showName = useRealName && !!name;
 
 	return (
 		<Option
 			{...props}
-			data-qa-type='autocomplete-user-option'
-			avatar={_federated ? undefined : <UserAvatar username={username || ''} size='x20' />}
+			aria-label={username}
+			avatar={_federated ? undefined : <UserAvatar username={username || ''} size={ITEM_MEDIA_SIZE.condensed} />}
 			icon={_federated ? 'globe' : undefined}
-			key={username}
+			iconLabel={_federated ? t('Federated') : undefined}
 			label={
-				(
-					<>
-						{name || username} {!_federated && <OptionDescription>({username})</OptionDescription>}
-					</>
-				) as any
+				<>
+					{showName ? name : username}
+					{showName && !_federated && <OptionDescription>@{username}</OptionDescription>}
+				</>
 			}
-			children={undefined}
 		/>
 	);
 };

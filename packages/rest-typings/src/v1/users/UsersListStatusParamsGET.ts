@@ -1,10 +1,6 @@
-import Ajv from 'ajv';
-
 import type { PaginatedRequest } from '../../helpers/PaginatedRequest';
-
-const ajv = new Ajv({
-	coerceTypes: true,
-});
+import { ajvQuery } from '../Ajv';
+import { paginationQueryProperties } from '../pagination';
 
 export type UsersListStatusParamsGET = PaginatedRequest<{
 	status?: 'active' | 'deactivated';
@@ -12,6 +8,8 @@ export type UsersListStatusParamsGET = PaginatedRequest<{
 	type?: string;
 	roles?: string[];
 	searchTerm?: string;
+	inactiveReason?: ('deactivated' | 'pending_approval' | 'idle_too_long')[];
+	statusManagement?: 'default' | 'managed';
 }>;
 const UsersListStatusParamsGetSchema = {
 	type: 'object',
@@ -43,16 +41,20 @@ const UsersListStatusParamsGetSchema = {
 			type: 'string',
 			nullable: true,
 		},
-		count: {
-			type: 'number',
-			nullable: true,
+		...paginationQueryProperties,
+		inactiveReason: {
+			type: 'array',
+			items: {
+				type: 'string',
+				enum: ['deactivated', 'pending_approval', 'idle_too_long'],
+			},
 		},
-		offset: {
-			type: 'number',
-			nullable: true,
+		statusManagement: {
+			type: 'string',
+			enum: ['default', 'managed'],
 		},
 	},
 	additionalProperties: false,
 };
 
-export const isUsersListStatusProps = ajv.compile<UsersListStatusParamsGET>(UsersListStatusParamsGetSchema);
+export const isUsersListStatusProps = ajvQuery.compile<UsersListStatusParamsGET>(UsersListStatusParamsGetSchema);

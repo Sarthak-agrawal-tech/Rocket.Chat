@@ -1,9 +1,9 @@
 import { AutoComplete, Option, Box, Chip } from '@rocket.chat/fuselage';
 import { useDebouncedValue } from '@rocket.chat/fuselage-hooks';
-import { UserAvatar } from '@rocket.chat/ui-avatar';
+import { ITEM_MEDIA_SIZE, UserAvatar } from '@rocket.chat/ui-avatar';
 import { useEndpoint } from '@rocket.chat/ui-contexts';
 import { useQuery } from '@tanstack/react-query';
-import type { ComponentProps, ReactElement } from 'react';
+import type { ComponentPropsWithoutRef } from 'react';
 import { memo, useMemo, useState } from 'react';
 
 const query = (
@@ -13,11 +13,11 @@ const query = (
 	selector: string;
 } => ({ selector: JSON.stringify({ term, conditions }) });
 
-type UserAutoCompleteProps = Omit<ComponentProps<typeof AutoComplete>, 'filter'> & {
+export type UserAutoCompleteProps = Omit<ComponentPropsWithoutRef<typeof AutoComplete>, 'filter'> & {
 	conditions?: { [key: string]: unknown };
 };
 
-const UserAutoComplete = ({ value, onChange, ...props }: UserAutoCompleteProps): ReactElement => {
+const UserAutoComplete = ({ value, onChange, ...props }: UserAutoCompleteProps) => {
 	const { conditions = {} } = props;
 	const [filter, setFilter] = useState('');
 	const debouncedFilter = useDebouncedValue(filter, 1000);
@@ -37,17 +37,16 @@ const UserAutoComplete = ({ value, onChange, ...props }: UserAutoCompleteProps):
 			onChange={onChange}
 			filter={filter}
 			setFilter={setFilter}
-			data-qa-id='UserAutoComplete'
-			renderSelected={({ selected: { value, label } }): ReactElement | null => (
-				<Chip height='x20' value={value} mie={4}>
+			renderSelected={({ selected: { value, label } }) => (
+				<Chip value={value}>
 					<UserAvatar size='x20' username={value} />
-					<Box verticalAlign='middle' is='span' margin='none' mi={4}>
+					<Box verticalAlign='middle' is='span' margin='none' marginInline={4}>
 						{label}
 					</Box>
 				</Chip>
 			)}
-			renderItem={({ value, label, ...props }): ReactElement => (
-				<Option key={value} label={label} avatar={<UserAvatar size='x20' username={value} />} {...props} />
+			renderItem={({ value, label, ...props }) => (
+				<Option key={value} label={label} avatar={<UserAvatar size={ITEM_MEDIA_SIZE.condensed} username={value} />} {...props} />
 			)}
 			options={options}
 		/>

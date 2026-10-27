@@ -1,12 +1,12 @@
 import type { SelectOption } from '@rocket.chat/fuselage';
 import { Field, FieldLabel, FieldRow, FieldError, FieldHint, TextInput, Select, ToggleSwitch } from '@rocket.chat/fuselage';
-import { useMemo } from 'react';
+import { useId, useMemo } from 'react';
 import { useFormContext, Controller } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 
 import type { EditRolePageFormData } from './EditRolePage';
 
-type RoleFormProps = {
+export type RoleFormProps = {
 	className?: string;
 	editing?: boolean;
 	isProtected?: boolean;
@@ -15,6 +15,7 @@ type RoleFormProps = {
 
 const RoleForm = ({ className, editing = false, isProtected = false, isDisabled = false }: RoleFormProps) => {
 	const { t } = useTranslation();
+	const scopeField = useId();
 	const {
 		register,
 		control,
@@ -47,15 +48,17 @@ const RoleForm = ({ className, editing = false, isProtected = false, isDisabled 
 				<FieldRow>
 					<TextInput placeholder={t('Description')} disabled={isDisabled} {...register('description')} />
 				</FieldRow>
-				<FieldHint>Leave the description field blank if you dont want to show the role</FieldHint>
+				<FieldHint>{t('Leave_the_description_field_blank_if_you_dont_want_to_show_the_role')}</FieldHint>
 			</Field>
 			<Field className={className}>
-				<FieldLabel>{t('Scope')}</FieldLabel>
+				<FieldLabel htmlFor={scopeField}>{t('Scope')}</FieldLabel>
 				<FieldRow>
 					<Controller
 						name='scope'
 						control={control}
-						render={({ field }) => <Select {...field} options={options} disabled={isProtected || isDisabled} placeholder={t('Scope')} />}
+						render={({ field }) => (
+							<Select id={scopeField} {...field} options={options} disabled={isProtected || isDisabled} placeholder={t('Scope')} />
+						)}
 					/>
 				</FieldRow>
 			</Field>

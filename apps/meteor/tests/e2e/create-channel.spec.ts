@@ -12,16 +12,13 @@ test.describe.serial('create-channel', () => {
 	test.beforeEach(async ({ page }) => {
 		poHomeChannel = new HomeChannel(page);
 
-		await page.goto('/home');
+		await poHomeChannel.goto();
 	});
 
 	test('expect create a public channel', async ({ page }) => {
 		const channelName = faker.string.uuid();
 
-		await poHomeChannel.sidenav.openNewByLabel('Channel');
-		await poHomeChannel.sidenav.inputChannelName.type(channelName);
-		await poHomeChannel.sidenav.checkboxPrivateChannel.click();
-		await poHomeChannel.sidenav.btnCreate.click();
+		await poHomeChannel.navbar.createNew('Channel', channelName, { private: false });
 
 		await expect(page).toHaveURL(`/channel/${channelName}`);
 	});
@@ -29,9 +26,7 @@ test.describe.serial('create-channel', () => {
 	test('expect create a private channel', async ({ page }) => {
 		const channelName = faker.string.uuid();
 
-		await poHomeChannel.sidenav.openNewByLabel('Channel');
-		await poHomeChannel.sidenav.inputChannelName.type(channelName);
-		await poHomeChannel.sidenav.btnCreate.click();
+		await poHomeChannel.navbar.createNew('Channel', channelName, { private: true });
 
 		await expect(page).toHaveURL(`/group/${channelName}`);
 	});

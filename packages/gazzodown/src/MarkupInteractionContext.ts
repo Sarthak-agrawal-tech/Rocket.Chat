@@ -1,7 +1,7 @@
 import type { MessageMention } from '@rocket.chat/core-typings';
 import type * as MessageParser from '@rocket.chat/message-parser';
-import { createContext, FormEvent, UIEvent } from 'react';
-import { AriaButtonProps } from 'react-aria';
+import type { AriaAttributes, FormEvent, UIEvent } from 'react';
+import { createContext } from 'react';
 
 export type UserMention = MessageMention;
 export type ChannelMention = MessageMention;
@@ -13,6 +13,7 @@ type MarkupInteractionContextValue = {
 	onTaskChecked?: (task: MessageParser.Task) => ((e: FormEvent) => void) | undefined;
 	resolveUserMention?: (mention: string) => MessageMention | undefined;
 	onUserMentionClick?: (mentionedUser: MessageMention) => ((e: UIEvent) => void) | undefined;
+	onUserMentionHover?: (mentionedUser: MessageMention) => ((e: UIEvent) => void) | undefined;
 	resolveChannelMention?: (mention: string) => MessageMention | undefined;
 	onChannelMentionClick?: (mentionedChannel: MessageMention) => ((e: UIEvent) => void) | undefined;
 	convertAsciiToEmoji?: boolean;
@@ -21,8 +22,7 @@ type MarkupInteractionContextValue = {
 	isMobile?: boolean;
 	ownUserId?: string | null;
 	showMentionSymbol?: boolean;
-	triggerProps?: AriaButtonProps<'button'>;
-	enableTimestamp?: boolean;
+	triggerProps?: AriaAttributes;
 	language?: string;
 };
 

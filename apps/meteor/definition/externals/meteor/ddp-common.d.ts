@@ -14,5 +14,11 @@ declare module 'meteor/ddp-common' {
 				userId?: string;
 			});
 		}
+
+		class Heartbeat {
+			_seenPacket: boolean;
+
+			messageReceived(): void;
+		}
 	}
 }

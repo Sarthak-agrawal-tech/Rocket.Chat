@@ -1,23 +1,24 @@
-import { States, StatesIcon, StatesTitle, StatesActions, StatesAction } from '@rocket.chat/fuselage';
+import { States, StatesIcon, StatesTitle, StatesActions, StatesAction, type TableColumnWidth } from '@rocket.chat/fuselage';
 import { useMediaQuery } from '@rocket.chat/fuselage-hooks';
-import { GenericModal } from '@rocket.chat/ui-client';
-import { useSetModal, useToastMessageDispatch, useTranslation, useEndpoint } from '@rocket.chat/ui-contexts';
-import { useQuery } from '@tanstack/react-query';
-import type { ReactElement } from 'react';
-import { useMemo } from 'react';
-
-import InviteRow from './InviteRow';
-import GenericNoResults from '../../../components/GenericNoResults';
 import {
+	GenericModal,
 	GenericTable,
 	GenericTableBody,
 	GenericTableHeader,
 	GenericTableHeaderCell,
 	GenericTableLoadingTable,
-} from '../../../components/GenericTable';
-import { Page, PageHeader, PageContent } from '../../../components/Page';
+	Page,
+	PageHeader,
+	PageContent,
+	GenericNoResults,
+} from '@rocket.chat/ui-client';
+import { useSetModal, useToastMessageDispatch, useTranslation, useEndpoint } from '@rocket.chat/ui-contexts';
+import { useQuery } from '@tanstack/react-query';
+import { useMemo } from 'react';
 
-const InvitesPage = (): ReactElement => {
+import InviteRow from './InviteRow';
+
+const InvitesPage = () => {
 	const t = useTranslation();
 	const dispatchToastMessage = useToastMessageDispatch();
 	const setModal = useSetModal();
@@ -53,29 +54,32 @@ const InvitesPage = (): ReactElement => {
 		setModal(
 			<GenericModal
 				title={t('Are_you_sure')}
-				children={t('Are_you_sure_you_want_to_delete_this_record')}
 				variant='danger'
 				confirmText={t('Yes')}
 				cancelText={t('No')}
 				onClose={(): void => setModal()}
 				onCancel={(): void => setModal()}
 				onConfirm={confirmRemove}
-			/>,
+			>
+				{t('Are_you_sure_you_want_to_delete_this_record')}
+			</GenericModal>,
 		);
 	};
 
 	const notSmall = useMediaQuery('(min-width: 768px)');
 
+	const columns: TableColumnWidth[] = [notSmall ? '20%' : '80%', ...(notSmall ? (['35%', '20%', '10%', '10%'] as const) : [])];
+
 	const headers = useMemo(
 		() => (
 			<>
-				<GenericTableHeaderCell w={notSmall ? '20%' : '80%'}>{t('Token')}</GenericTableHeaderCell>
+				<GenericTableHeaderCell>{t('Token')}</GenericTableHeaderCell>
 				{notSmall && (
 					<>
-						<GenericTableHeaderCell w='35%'>{t('Created_at')}</GenericTableHeaderCell>
-						<GenericTableHeaderCell w='20%'>{t('Expiration')}</GenericTableHeaderCell>
-						<GenericTableHeaderCell w='10%'>{t('Uses')}</GenericTableHeaderCell>
-						<GenericTableHeaderCell w='10%'>{t('Uses_left')}</GenericTableHeaderCell>
+						<GenericTableHeaderCell>{t('Created_at')}</GenericTableHeaderCell>
+						<GenericTableHeaderCell>{t('Expiration')}</GenericTableHeaderCell>
+						<GenericTableHeaderCell>{t('Uses')}</GenericTableHeaderCell>
+						<GenericTableHeaderCell>{t('Uses_left')}</GenericTableHeaderCell>
 						<GenericTableHeaderCell />
 					</>
 				)}
@@ -90,7 +94,7 @@ const InvitesPage = (): ReactElement => {
 			<PageContent>
 				<>
 					{isLoading && (
-						<GenericTable>
+						<GenericTable columns={columns}>
 							<GenericTableHeader>{headers}</GenericTableHeader>
 							<GenericTableBody>
 								<GenericTableLoadingTable headerCells={4} />
@@ -98,7 +102,7 @@ const InvitesPage = (): ReactElement => {
 						</GenericTable>
 					)}
 					{isSuccess && data && data.length > 0 && (
-						<GenericTable>
+						<GenericTable columns={columns}>
 							<GenericTableHeader>{headers}</GenericTableHeader>
 							<GenericTableBody>
 								{isLoading && <GenericTableLoadingTable headerCells={notSmall ? 4 : 1} />}
@@ -108,7 +112,7 @@ const InvitesPage = (): ReactElement => {
 							</GenericTableBody>
 						</GenericTable>
 					)}
-					{isSuccess && data && data.length === 0 && <GenericNoResults />}
+					{isSuccess && data?.length === 0 && <GenericNoResults />}
 					{isError && (
 						<States>
 							<StatesIcon name='warning' variation='danger' />

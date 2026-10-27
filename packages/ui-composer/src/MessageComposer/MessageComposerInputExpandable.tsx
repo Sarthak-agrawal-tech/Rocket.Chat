@@ -1,6 +1,7 @@
 import { css } from '@rocket.chat/css-in-js';
 import { Box, IconButton } from '@rocket.chat/fuselage';
-import { useState, type ComponentProps, ChangeEvent, forwardRef } from 'react';
+import { useState, forwardRef } from 'react';
+import type { ChangeEvent, ComponentProps } from 'react';
 import { useTranslation } from 'react-i18next';
 
 import MessageComposerInput from './MessageComposerInput';
@@ -37,7 +38,7 @@ const MessageComposerInputExpandable = forwardRef<HTMLTextAreaElement, ExpandCom
 						`}
 					>
 						<IconButton
-							small
+							size='small'
 							icon={expanded ? 'arrow-collapse' : 'arrow-expand'}
 							title={expanded ? t('Collapse') : t('Expand')}
 							onClick={() => setExpanded(!expanded)}
