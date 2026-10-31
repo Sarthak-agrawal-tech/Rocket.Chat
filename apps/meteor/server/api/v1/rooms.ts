@@ -91,6 +91,7 @@ import { composeRoomWithLastMessage } from '../lib/composeRoomWithLastMessage';
 import { getPaginationItems } from '../lib/getPaginationItems';
 import { getRoomClassificationBanner } from '../lib/getRoomClassificationBanner';
 import { getUserFromParams } from '../lib/getUserFromParams';
+import { normalizeLegacyUfsLocation } from '../lib/normalizeLegacyUfsLocation';
 import {
 	findAdminRoom,
 	findAdminRooms,
@@ -492,6 +493,7 @@ API.v1.post(
 			}),
 			400: validateBadRequestErrorResponse,
 			401: validateUnauthorizedErrorResponse,
+			403: validateForbiddenErrorResponse,
 		},
 	},
 	async function action() {
@@ -499,7 +501,7 @@ API.v1.post(
 		const { _id } = room;
 
 		if (!room || !(await canAccessRoomAsync(room, { _id: this.userId }))) {
-			return API.v1.failure('User does not have access to the room [error-not-allowed]', 'error-not-allowed');
+			return API.v1.forbidden('User does not have access to the room');
 		}
 
 		const { latest, oldest, inclusive = false, limit, excludePinned, filesOnly, ignoreThreads, ignoreDiscussion, users } = this.bodyParams;
@@ -541,6 +543,7 @@ API.v1.get(
 			}),
 			400: validateBadRequestErrorResponse,
 			401: validateUnauthorizedErrorResponse,
+			403: validateForbiddenErrorResponse,
 		},
 	},
 	async function action() {
@@ -554,7 +557,7 @@ API.v1.get(
 				(await hasPermissionAsync(this.userId, 'view-room-administration')));
 
 		if (!canAccess) {
-			return API.v1.failure('not-allowed', 'Not Allowed');
+			return API.v1.forbidden('User does not have access to the room');
 		}
 
 		const discussionParent =
@@ -632,6 +635,7 @@ API.v1.get(
 			}),
 			400: validateBadRequestErrorResponse,
 			401: validateUnauthorizedErrorResponse,
+			403: validateForbiddenErrorResponse,
 		},
 	},
 	async function action() {
@@ -640,7 +644,7 @@ API.v1.get(
 		const { sort, fields } = await this.parseJsonQuery();
 
 		if (!room || !(await canAccessRoomAsync(room, { _id: this.userId }))) {
-			return API.v1.failure('not-allowed', 'Not Allowed');
+			return API.v1.forbidden('User does not have access to the room');
 		}
 
 		const ourQuery = { prid: room._id };
@@ -716,7 +720,7 @@ API.v1.get(
 		}
 
 		return API.v1.success({
-			files,
+			files: files.map(normalizeLegacyUfsLocation),
 			count,
 			offset,
 			total,
@@ -747,6 +751,7 @@ API.v1.get(
 			}),
 			400: validateBadRequestErrorResponse,
 			401: validateUnauthorizedErrorResponse,
+			403: validateForbiddenErrorResponse,
 		},
 	},
 	async function action() {
@@ -786,6 +791,7 @@ API.v1.get(
 			}),
 			400: validateBadRequestErrorResponse,
 			401: validateUnauthorizedErrorResponse,
+			403: validateForbiddenErrorResponse,
 		},
 	},
 	async function action() {
@@ -821,6 +827,7 @@ API.v1.get(
 			}),
 			400: validateBadRequestErrorResponse,
 			401: validateUnauthorizedErrorResponse,
+			403: validateForbiddenErrorResponse,
 		},
 	},
 	async function action() {
@@ -831,7 +838,7 @@ API.v1.get(
 		});
 
 		if (!room) {
-			return API.v1.failure('not-allowed', 'Not Allowed');
+			return API.v1.forbidden('User does not have access to the room');
 		}
 		return API.v1.success(room);
 	},
@@ -1145,6 +1152,7 @@ API.v1.get(
 			}),
 			400: validateBadRequestErrorResponse,
 			401: validateUnauthorizedErrorResponse,
+			403: validateForbiddenErrorResponse,
 			404: validateNotFoundErrorResponse,
 		},
 	},
@@ -1163,7 +1171,7 @@ API.v1.get(
 		}
 
 		if (findResult.broadcast && !(await hasPermissionAsync(this.user, 'view-broadcast-member-list', findResult._id))) {
-			return API.v1.unauthorized();
+			return API.v1.forbidden();
 		}
 
 		// Ensures that role priorities for the specified room are synchronized correctly.
@@ -1304,13 +1312,14 @@ API.v1.post(
 			200: successResponseSchema,
 			400: validateBadRequestErrorResponse,
 			401: validateUnauthorizedErrorResponse,
+			403: validateForbiddenErrorResponse,
 		},
 	},
 	async function action() {
 		const { roomId } = this.bodyParams;
 
 		if (!(await canAccessRoomIdAsync(roomId, this.userId))) {
-			return API.v1.unauthorized();
+			return API.v1.forbidden();
 		}
 
 		const user = await Users.findOneById(this.userId, { projection: { _id: 1 } });
@@ -1521,7 +1530,7 @@ export const roomEndpoints = API.v1
 			response: {
 				400: validateBadRequestErrorResponse,
 				401: validateUnauthorizedErrorResponse,
-				403: validateUnauthorizedErrorResponse,
+				403: validateForbiddenErrorResponse,
 				200: ajv.compile<{
 					rooms: Array<Pick<IRoom, RoomAdminFieldsType> & IRoomAbacRedaction>;
 					count: number;
@@ -1723,13 +1732,14 @@ export const roomEndpoints = API.v1
 			response: {
 				200: roomsBannedUsersResponseSchema,
 				401: validateUnauthorizedErrorResponse,
+				403: validateForbiddenErrorResponse,
 			},
 		},
 		async function action() {
 			const { roomId } = this.queryParams;
 
 			if (!(await canAccessRoomIdAsync(roomId, this.userId))) {
-				return API.v1.unauthorized();
+				return API.v1.forbidden();
 			}
 
 			const { offset, count } = await getPaginationItems(this.queryParams);
